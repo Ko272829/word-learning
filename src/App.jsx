@@ -116,6 +116,7 @@ const BUILT_IN_BOOKS = {
 };
 
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizeBookName = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 const mergeBookWords = (existingWords, incomingWords, bookId) => {
   const mergedMap = new Map();
@@ -133,6 +134,13 @@ const mergeBookWords = (existingWords, incomingWords, bookId) => {
     ...word,
     id: `${bookId}_${index}`
   }));
+};
+
+const findExistingAiBook = (books, topicKey, topic) => {
+  const expectedName = normalizeBookName(`${topic}词书`);
+  return Object.values(books).find(
+    (item) => item.aiTopicKey === topicKey || normalizeBookName(item.name) === expectedName
+  );
 };
 
 export default function VocabularyMaster() {
@@ -191,13 +199,16 @@ export default function VocabularyMaster() {
 
   const addOrMergeAiBook = (book, topic) => {
     const topicKey = normalizeTopicKey(topic);
-    const existingBook = Object.values(customBooks).find((item) => item.aiTopicKey === topicKey);
-    const targetBookId = existingBook?.id || book.id;
+    let mergedIntoExisting = false;
+    let targetBookId = book.id;
 
     setCustomBooks(prev => {
       const next = { ...prev };
+      const existingBook = findExistingAiBook(prev, topicKey, topic);
+      targetBookId = existingBook?.id || book.id;
 
       if (existingBook) {
+        mergedIntoExisting = true;
         next[existingBook.id] = {
           ...existingBook,
           name: `${topic}词书`,
@@ -217,6 +228,7 @@ export default function VocabularyMaster() {
     });
 
     setHiddenBookIds(prev => prev.filter(id => id !== targetBookId));
+    return mergedIntoExisting;
   };
 
   // Session State (Learning Phase)
@@ -435,11 +447,10 @@ export default function VocabularyMaster() {
         throw new Error(data.error || `生成失败（HTTP ${res.status}）`);
       }
 
-      const previousBook = Object.values(customBooks).find((book) => book.aiTopicKey === normalizeTopicKey(topic));
-      addOrMergeAiBook(data.book, topic);
+      const merged = addOrMergeAiBook(data.book, topic);
       setAiTopic('');
       alert(
-        previousBook
+        merged
           ? `🎉 AI 词书已合并到：${topic}词书\n本次新增或补充了 ${data.book.words.length} 个候选词。`
           : `🎉 AI 词书生成成功：${topic}词书\n已生成 ${data.book.words.length} 个单词。`
       );
