@@ -33,10 +33,13 @@ const sanitizeWord = (item, index, bookId) => ({
   exampleZh: String(item.exampleZh || '').trim()
 });
 
-export default async (req) => {
-  if (req.httpMethod !== 'POST') {
+export async function handler(event) {
+  if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: 'Method Not Allowed' })
     };
   }
@@ -45,16 +48,22 @@ export default async (req) => {
   if (!apiKey) {
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: '缺少 DEEPSEEK_API_KEY 环境变量' })
     };
   }
 
   try {
-    const { topic } = JSON.parse(req.body || '{}');
+    const { topic } = JSON.parse(event.body || '{}');
     const cleanTopic = String(topic || '').trim();
     if (!cleanTopic) {
       return {
         statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ error: '请输入词书主题' })
       };
     }
@@ -86,6 +95,9 @@ export default async (req) => {
       const errorText = await upstream.text();
       return {
         statusCode: upstream.status,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ error: `DeepSeek 请求失败: ${errorText}` })
       };
     }
@@ -95,6 +107,9 @@ export default async (req) => {
     if (!content) {
       return {
         statusCode: 502,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ error: 'DeepSeek 未返回词书内容' })
       };
     }
@@ -103,6 +118,9 @@ export default async (req) => {
     if (!Array.isArray(parsed.words) || parsed.words.length === 0) {
       return {
         statusCode: 502,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ error: '返回的词书格式无效' })
       };
     }
@@ -115,6 +133,9 @@ export default async (req) => {
     if (words.length === 0) {
       return {
         statusCode: 502,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ error: 'AI 未生成有效词条' })
       };
     }
@@ -135,7 +156,10 @@ export default async (req) => {
   } catch (error) {
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: error.message || '服务器处理失败' })
     };
   }
-};
+}

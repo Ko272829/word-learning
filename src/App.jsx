@@ -349,7 +349,7 @@ export default function VocabularyMaster() {
         body: JSON.stringify({ topic })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: '服务端返回了非 JSON 响应' }));
       if (!res.ok) {
         throw new Error(data.error || '生成失败');
       }
@@ -358,7 +358,7 @@ export default function VocabularyMaster() {
       setAiTopic('');
       alert(`🎉 AI 词书生成成功：${data.book.name}\n已生成 ${data.book.words.length} 个单词。`);
     } catch (err) {
-      alert(`AI 生成失败：${err.message}\n请确认 Netlify 已设置 DEEPSEEK_API_KEY，并重新部署最新版本。`);
+      alert(`AI 生成失败：${err.message}`);
     } finally {
       setIsAiGenerating(false);
     }
