@@ -28,6 +28,20 @@ DEEPSEEK_API_KEY=你的 DeepSeek API Key
 
 然后重新部署站点。
 
+## Cloudflare Pages 与 DeepSeek
+
+项目已包含 Cloudflare Pages Functions 版本的 `/api/generate-book`：
+
+- `functions/api/generate-book.js`
+
+部署到 Cloudflare 后，在项目的 `Settings -> Variables and Secrets` 中添加：
+
+```bash
+DEEPSEEK_API_KEY=你的 DeepSeek API Key
+```
+
+然后重新部署。
+
 ## 构成
 
 - `src/App.jsx`: 从原始 `背单词.txt` 提取的主应用代码
