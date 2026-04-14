@@ -155,8 +155,11 @@ const CHUNKED_BUILT_IN_BOOKS = {
   ...splitBookIntoChunks(BUILT_IN_BOOKS.kb_cet6)
 };
 
+const EXAMPLE_BATCH_SIZE = 20;
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeBookName = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizeExampleKey = (word, meaning) =>
+  `${String(word || '').trim().toLowerCase()}__${String(meaning || '').trim()}`;
 
 const mergeBookWords = (existingWords, incomingWords, bookId) => {
   const mergedMap = new Map();
@@ -190,6 +193,8 @@ export default function VocabularyMaster() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [exampleGenerationState, setExampleGenerationState] = useState({ bookId: null, completed: 0, total: 0 });
+  const [phoneticGenerationState, setPhoneticGenerationState] = useState({ bookId: null, completed: 0, total: 0 });
   
   // 1. 本地存储：复习进度持久化
   const [userProgress, setUserProgress] = useState(() => {
@@ -231,6 +236,7 @@ export default function VocabularyMaster() {
       return true;
     })
   );
+  const isBuiltInBook = (bookId) => Boolean(CHUNKED_BUILT_IN_BOOKS[bookId]);
 
   const addCustomBook = (book) => {
     setCustomBooks(prev => {
@@ -273,6 +279,14 @@ export default function VocabularyMaster() {
 
     setHiddenBookIds(prev => prev.filter(id => id !== targetBookId));
     return mergedIntoExisting;
+  };
+
+  const saveBookOverride = (book) => {
+    setCustomBooks(prev => {
+      const next = { ...prev, [book.id]: book };
+      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      return next;
+    });
   };
 
   // Session State (Learning Phase)
@@ -435,7 +449,7 @@ export default function VocabularyMaster() {
   const deleteBook = (e, bookId) => {
     e.stopPropagation();
     if (confirm("确定要删除这个词库吗？相关的记忆进度虽然保留，但词库入口将移除。")) {
-      if (customBooks[bookId]) {
+      if (!isBuiltInBook(bookId) && customBooks[bookId]) {
         setCustomBooks(prev => {
           const next = {...prev};
           delete next[bookId];
@@ -450,6 +464,173 @@ export default function VocabularyMaster() {
         setSelectedBook(null);
         setView('home');
       }
+    }
+  };
+
+  const handleGenerateExamplesForBook = async (e, bookId) => {
+    e.stopPropagation();
+    if (exampleGenerationState.bookId) return;
+
+    const book = ALL_BOOKS[bookId];
+    if (!book) return;
+
+    const missingWords = book.words.filter((item) => !item.exampleEn || !item.exampleZh);
+    if (missingWords.length === 0) {
+      alert('这本词书已经有完整例句了。');
+      return;
+    }
+
+    if (!confirm(`将为《${book.name}》补充 ${missingWords.length} 条例句，过程可能持续较久。确定继续吗？`)) {
+      return;
+    }
+
+    let workingBook = {
+      ...(customBooks[bookId] || book),
+      sourceBookId: book.sourceBookId || book.id,
+      words: [...book.words]
+    };
+
+    setExampleGenerationState({ bookId, completed: 0, total: missingWords.length });
+
+    try {
+      for (let start = 0; start < missingWords.length; start += EXAMPLE_BATCH_SIZE) {
+        const batch = missingWords.slice(start, start + EXAMPLE_BATCH_SIZE);
+        const res = await fetch('/api/generate-examples', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookName: book.name,
+            words: batch.map(({ word, pos, meaning }) => ({ word, pos, meaning }))
+          })
+        });
+
+        const rawText = await res.text();
+        let data = {};
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          data = { error: `服务端返回了非 JSON 响应：${rawText.slice(0, 180)}` };
+        }
+        if (!res.ok) {
+          throw new Error(data.error || `补例句失败（HTTP ${res.status}）`);
+        }
+
+        const examplesMap = new Map(
+          (data.examples || []).map((item) => [
+            normalizeExampleKey(item.word, item.meaning),
+            item
+          ])
+        );
+
+        workingBook = {
+          ...workingBook,
+          words: workingBook.words.map((item) => {
+            const matched = examplesMap.get(normalizeExampleKey(item.word, item.meaning));
+            if (!matched) return item;
+            return {
+              ...item,
+              exampleEn: matched.exampleEn || item.exampleEn,
+              exampleZh: matched.exampleZh || item.exampleZh
+            };
+          })
+        };
+
+        saveBookOverride(workingBook);
+        setExampleGenerationState({
+          bookId,
+          completed: Math.min(start + batch.length, missingWords.length),
+          total: missingWords.length
+        });
+      }
+
+      alert(`《${book.name}》例句补充完成，现在可以进行拼写句子练习了。`);
+    } catch (error) {
+      alert(`补例句失败：${error.message}`);
+    } finally {
+      setExampleGenerationState({ bookId: null, completed: 0, total: 0 });
+    }
+  };
+
+  const handleGeneratePhoneticsForBook = async (e, bookId) => {
+    e.stopPropagation();
+    if (phoneticGenerationState.bookId) return;
+
+    const book = ALL_BOOKS[bookId];
+    if (!book) return;
+
+    const missingWords = book.words.filter((item) => !item.phonetic);
+    if (missingWords.length === 0) {
+      alert('这本词书已经有完整音标了。');
+      return;
+    }
+
+    if (!confirm(`将为《${book.name}》补充 ${missingWords.length} 条音标。确定继续吗？`)) {
+      return;
+    }
+
+    let workingBook = {
+      ...(customBooks[bookId] || book),
+      sourceBookId: book.sourceBookId || book.id,
+      words: [...book.words]
+    };
+
+    setPhoneticGenerationState({ bookId, completed: 0, total: missingWords.length });
+
+    try {
+      for (let start = 0; start < missingWords.length; start += EXAMPLE_BATCH_SIZE) {
+        const batch = missingWords.slice(start, start + EXAMPLE_BATCH_SIZE);
+        const res = await fetch('/api/generate-phonetics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookName: book.name,
+            words: batch.map(({ word, pos, meaning }) => ({ word, pos, meaning }))
+          })
+        });
+
+        const rawText = await res.text();
+        let data = {};
+        try {
+          data = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          data = { error: `服务端返回了非 JSON 响应：${rawText.slice(0, 180)}` };
+        }
+        if (!res.ok) {
+          throw new Error(data.error || `补音标失败（HTTP ${res.status}）`);
+        }
+
+        const phoneticsMap = new Map(
+          (data.phonetics || []).map((item) => [
+            normalizeExampleKey(item.word, item.meaning),
+            item
+          ])
+        );
+
+        workingBook = {
+          ...workingBook,
+          words: workingBook.words.map((item) => {
+            const matched = phoneticsMap.get(normalizeExampleKey(item.word, item.meaning));
+            if (!matched) return item;
+            return {
+              ...item,
+              phonetic: matched.phonetic || item.phonetic
+            };
+          })
+        };
+
+        saveBookOverride(workingBook);
+        setPhoneticGenerationState({
+          bookId,
+          completed: Math.min(start + batch.length, missingWords.length),
+          total: missingWords.length
+        });
+      }
+
+      alert(`《${book.name}》音标补充完成。`);
+    } catch (error) {
+      alert(`补音标失败：${error.message}`);
+    } finally {
+      setPhoneticGenerationState({ bookId: null, completed: 0, total: 0 });
     }
   };
 
@@ -807,6 +988,12 @@ export default function VocabularyMaster() {
               const totalWords = book.words.length;
               const learnedCount = book.words.filter(w => userProgress[w.id]).length;
               const progressPercent = Math.round((learnedCount / totalWords) * 100) || 0;
+              const missingExamplesCount = book.words.filter(w => !w.exampleEn || !w.exampleZh).length;
+              const isGeneratingExamples = exampleGenerationState.bookId === book.id;
+              const generatedCount = Math.max(0, exampleGenerationState.completed);
+              const missingPhoneticsCount = book.words.filter(w => !w.phonetic).length;
+              const isGeneratingPhonetics = phoneticGenerationState.bookId === book.id;
+              const generatedPhoneticsCount = Math.max(0, phoneticGenerationState.completed);
 
               return (
                 <div
@@ -821,6 +1008,22 @@ export default function VocabularyMaster() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  <button
+                    onClick={(e) => handleGenerateExamplesForBook(e, book.id)}
+                    disabled={isGeneratingExamples}
+                    className="absolute top-4 right-14 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors z-10 disabled:opacity-60 disabled:cursor-not-allowed"
+                    title="为这本词书批量补充例句"
+                  >
+                    {isGeneratingExamples ? `补例句 ${generatedCount}/${exampleGenerationState.total}` : 'AI补例句'}
+                  </button>
+                  <button
+                    onClick={(e) => handleGeneratePhoneticsForBook(e, book.id)}
+                    disabled={isGeneratingPhonetics}
+                    className="absolute top-14 right-14 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors z-10 disabled:opacity-60 disabled:cursor-not-allowed"
+                    title="为这本词书批量补充音标"
+                  >
+                    {isGeneratingPhonetics ? `补音标 ${generatedPhoneticsCount}/${phoneticGenerationState.total}` : 'AI补音标'}
+                  </button>
                   
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-3 bg-slate-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -831,6 +1034,11 @@ export default function VocabularyMaster() {
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-2 truncate pr-6">{book.name}</h3>
+                  <p className="text-xs text-slate-400 mb-3">
+                    {missingExamplesCount === 0 ? '已带完整例句' : `还缺 ${missingExamplesCount} 条例句`}
+                    {' · '}
+                    {missingPhoneticsCount === 0 ? '已带完整音标' : `还缺 ${missingPhoneticsCount} 条音标`}
+                  </p>
                   <div className="mt-auto pt-4 w-full">
                     <div className="flex justify-between text-sm text-slate-500 mb-2">
                       <span>总学习进度</span>
@@ -979,13 +1187,13 @@ export default function VocabularyMaster() {
             {/* 阶段 1 & 3: 全量展示 */}
             {(learnStage === 1 || learnStage === 3) && (
               <>
-                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-4">{word.word}</h2>
+                <h2 className="text-5xl font-black text-slate-900 tracking-tight mb-3">{word.word}</h2>
+                {word.phonetic && (
+                  <p className="text-lg text-slate-500 font-mono mb-4">
+                    {word.phonetic}
+                  </p>
+                )}
                 <div className="flex items-center gap-3">
-                  {word.phonetic && (
-                    <span className="text-lg text-slate-500 font-mono bg-slate-50 px-3 py-1 rounded-lg">
-                      {word.phonetic}
-                    </span>
-                  )}
                   <button 
                     onClick={() => playWordAudio(word.word, { allowUnlock: true })}
                     className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors bg-indigo-50/50"
@@ -1158,6 +1366,9 @@ export default function VocabularyMaster() {
               <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><Book className="w-4 h-4"/></div>
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">释义提示</span>
+                {word.phonetic && (
+                  <p className="text-sm text-slate-500 font-mono mt-1">{word.phonetic}</p>
+                )}
                 <p className="text-lg font-medium text-slate-800 mt-1">
                   {word.pos && <span className="text-indigo-600 mr-2">{word.pos}</span>}
                   {word.meaning}
