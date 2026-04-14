@@ -84,16 +84,6 @@ const calculateSM2 = (grade, repetition, interval, easeFactor) => {
   };
 };
 
-const playAudio = (text) => {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-  }
-};
-
 // 辅助函数：生成单选题选项 (包含词性)
 const generateMCOptions = (correctWord, allBooks) => {
   const allOptions = [];
@@ -123,6 +113,7 @@ export default function VocabularyMaster() {
   const [sessionType, setSessionType] = useState('normal'); // 'normal' 或 'smart_review'
   const [selectedBook, setSelectedBook] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   // 1. 本地存储：复习进度持久化
   const [userProgress, setUserProgress] = useState(() => {
@@ -174,6 +165,41 @@ export default function VocabularyMaster() {
 
   const inputRef = useRef(null);
   const sentenceInputRef = useRef(null);
+  const voicesRef = useRef([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
+
+    const loadVoices = () => {
+      voicesRef.current = window.speechSynthesis.getVoices();
+    };
+
+    loadVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    return () => {
+      window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
+  }, []);
+
+  const speakText = (text, { allowUnlock = false } = {}) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return;
+    if (!audioUnlocked && !allowUnlock) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const englishVoice = voicesRef.current.find((voice) => voice.lang?.toLowerCase().startsWith('en'));
+
+    utterance.lang = englishVoice?.lang || 'en-US';
+    utterance.voice = englishVoice || null;
+    utterance.rate = 0.9;
+
+    if (allowUnlock && !audioUnlocked) {
+      setAudioUnlocked(true);
+    }
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (view === 'spelling' && inputRef.current) inputRef.current.focus();
@@ -183,7 +209,7 @@ export default function VocabularyMaster() {
   // 自动播放学习阶段一的单词音频
   useEffect(() => {
     if (view === 'learning' && learnStage === 1 && queue[currentWordIndex]) {
-      playAudio(queue[currentWordIndex].word);
+      speakText(queue[currentWordIndex].word);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordIndex, view, learnStage]);
@@ -319,7 +345,7 @@ export default function VocabularyMaster() {
     setMcOptions(generateMCOptions(word, ALL_BOOKS));
     setMcFeedback(null);
     setLearnStage(2);
-    playAudio(word.word);
+    speakText(word.word, { allowUnlock: true });
   };
 
   // 阶段 2 单选题点击 (错误即跳过，放入队尾)
@@ -330,13 +356,13 @@ export default function VocabularyMaster() {
     setMcFeedback(opt); 
     
     if (opt === correctFormatted) {
-      playAudio(word.word);
+      speakText(word.word, { allowUnlock: true });
       setTimeout(() => {
         setLearnStage(3);
         setMcFeedback(null);
       }, 800);
     } else {
-      playAudio(word.word);
+      speakText(word.word, { allowUnlock: true });
       setTimeout(() => {
         // 选择错误，加入队列末尾重新循环
         setQueue(prev => [...prev, { ...word, _mcMistake: true }]);
@@ -401,7 +427,7 @@ export default function VocabularyMaster() {
     
     if (spellingInput.trim().toLowerCase() === targetWord) {
       setSpellingFeedback('correct');
-      playAudio(targetWord);
+      speakText(targetWord, { allowUnlock: true });
       
       const hasMistakeOnThisAttempt = currentWordMistakes > 0;
       // 只有从来没在此 Session 拼错过，且本次也没有输错，才判定为掌握(Grade 4)
@@ -444,7 +470,7 @@ export default function VocabularyMaster() {
       }, 1000);
     } else {
       setSpellingFeedback('incorrect');
-      playAudio(currentWord.word); // 拼错时自动播放读音辅助记忆
+      speakText(currentWord.word, { allowUnlock: true }); // 拼错时自动播放读音辅助记忆
       setCurrentWordMistakes(prev => prev + 1); // 记录错误，触发循环机制
     }
   };
@@ -710,7 +736,7 @@ export default function VocabularyMaster() {
                     </span>
                   )}
                   <button 
-                    onClick={() => playAudio(word.word)}
+                    onClick={() => speakText(word.word, { allowUnlock: true })}
                     className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors bg-indigo-50/50"
                   >
                     <Volume2 className="w-6 h-6" />
@@ -727,7 +753,7 @@ export default function VocabularyMaster() {
                     <div className="text-left bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/50">
                       <div className="flex justify-between items-start">
                         <p className="text-slate-700 font-medium mb-1 flex-1">{word.exampleEn}</p>
-                        <button onClick={() => playAudio(word.exampleEn)} className="text-indigo-400 hover:text-indigo-600 ml-2 mt-0.5">
+                        <button onClick={() => speakText(word.exampleEn, { allowUnlock: true })} className="text-indigo-400 hover:text-indigo-600 ml-2 mt-0.5">
                           <Play className="w-4 h-4" />
                         </button>
                       </div>
@@ -743,7 +769,7 @@ export default function VocabularyMaster() {
               <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-300">
                 <div className="mb-8">
                   <button
-                    onClick={() => playAudio(word.word)}
+                    onClick={() => speakText(word.word, { allowUnlock: true })}
                     className="w-28 h-28 bg-[#f0f5ff] text-[#2563eb] rounded-full flex items-center justify-center mx-auto hover:bg-[#e0ebff] transition-all active:scale-95 shadow-sm"
                   >
                     <Volume2 className="w-14 h-14" strokeWidth={2.5} />
@@ -838,7 +864,8 @@ export default function VocabularyMaster() {
 
         <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
           <div className="space-y-6 mb-8">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
               <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><Book className="w-4 h-4"/></div>
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">释义提示</span>
@@ -847,6 +874,17 @@ export default function VocabularyMaster() {
                   {word.meaning}
                 </p>
               </div>
+              </div>
+              {spellingFeedback !== 'correct' && (
+                <button
+                  type="button"
+                  onClick={() => speakText(word.word, { allowUnlock: true })}
+                  className="shrink-0 p-2 text-amber-500 hover:bg-amber-100 rounded-full transition-colors group -mt-1"
+                  title="播放读音提示"
+                >
+                  <Lightbulb className="w-7 h-7 group-active:scale-90 transition-transform" />
+                </button>
+              )}
             </div>
             
             {word.exampleZh && (
@@ -860,7 +898,7 @@ export default function VocabularyMaster() {
             )}
           </div>
 
-          <form onSubmit={handleSpellingSubmit} className="relative">
+          <form onSubmit={handleSpellingSubmit}>
             <input
               ref={inputRef}
               type="text"
@@ -871,7 +909,7 @@ export default function VocabularyMaster() {
               }}
               disabled={spellingFeedback === 'correct'} // 仅在正确时锁死输入框
               placeholder="请输入英文字母..."
-              className={`w-full text-2xl font-mono py-5 pl-5 pr-14 rounded-2xl outline-none border-2 transition-all text-center
+              className={`w-full text-2xl font-mono py-5 px-5 rounded-2xl outline-none border-2 transition-all text-center
                 ${spellingFeedback === 'correct' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 
                   spellingFeedback === 'incorrect' ? 'border-rose-500 bg-rose-50 text-rose-700 animate-shake' : 
                   'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white'}
@@ -880,23 +918,6 @@ export default function VocabularyMaster() {
               autoCorrect="off"
               spellCheck="false"
             />
-            
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
-              {spellingFeedback === 'correct' ? (
-                <div className="text-emerald-500 animate-in zoom-in pr-2">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => playAudio(word.word)}
-                  className="p-2 text-amber-500 hover:bg-amber-100 rounded-full transition-colors group"
-                  title="播放读音提示"
-                >
-                  <Lightbulb className="w-7 h-7 group-active:scale-90 transition-transform" />
-                </button>
-              )}
-            </div>
             
             <button 
               type="submit"
@@ -907,6 +928,12 @@ export default function VocabularyMaster() {
               <ArrowRight className="ml-2 w-5 h-5" />
             </button>
           </form>
+
+          {spellingFeedback === 'correct' && (
+            <div className="mt-4 flex justify-end text-emerald-500 animate-in zoom-in">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+          )}
           
           {spellingFeedback === 'incorrect' && (
             <div className="mt-4 p-4 bg-rose-50 text-rose-700 rounded-xl flex items-center text-sm animate-in slide-in-from-top-2">
