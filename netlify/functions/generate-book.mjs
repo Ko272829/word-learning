@@ -1,3 +1,5 @@
+import https from 'node:https';
+
 const buildPrompt = (topic) => `
 你是英语学习产品的专业词书编辑。请围绕主题“${topic}”生成一本高质量中文学习者词书。
 
@@ -55,6 +57,59 @@ const extractJsonObject = (text) => {
   throw new Error('无法从 DeepSeek 响应中提取 JSON');
 };
 
+const requestDeepSeek = (apiKey, topic) =>
+  new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      model: 'deepseek-chat',
+      temperature: 0.7,
+      max_tokens: 1800,
+      messages: [
+        {
+          role: 'system',
+          content: '你是词书生成助手。必须返回一个合法 JSON 对象，不要输出 Markdown 代码块之外的解释。'
+        },
+        {
+          role: 'user',
+          content: buildPrompt(topic)
+        }
+      ]
+    });
+
+    const req = https.request(
+      'https://api.deepseek.com/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+          Authorization: `Bearer ${apiKey}`
+        },
+        timeout: 18000
+      },
+      (res) => {
+        let body = '';
+
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode || 500,
+            body
+          });
+        });
+      }
+    );
+
+    req.on('timeout', () => {
+      req.destroy(new Error('DeepSeek 请求超时，请稍后重试或把主题描述写得更短一些。'));
+    });
+    req.on('error', (error) => reject(error));
+    req.write(payload);
+    req.end();
+  });
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return {
@@ -90,45 +145,19 @@ export async function handler(event) {
       };
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    const upstream = await requestDeepSeek(apiKey, cleanTopic);
 
-    const upstream = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        temperature: 0.7,
-        max_tokens: 1800,
-        messages: [
-          {
-            role: 'system',
-            content: '你是词书生成助手。必须返回一个合法 JSON 对象，不要输出 Markdown 代码块之外的解释。'
-          },
-          {
-            role: 'user',
-            content: buildPrompt(cleanTopic)
-          }
-        ]
-      }),
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeoutId));
-
-    if (!upstream.ok) {
-      const errorText = await upstream.text();
+    if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
       return {
-        statusCode: upstream.status,
+        statusCode: upstream.statusCode,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ error: `DeepSeek 请求失败: ${errorText}` })
+        body: JSON.stringify({ error: `DeepSeek 请求失败: ${upstream.body}` })
       };
     }
 
-    const payload = await upstream.json();
+    const payload = JSON.parse(upstream.body);
     const content = payload?.choices?.[0]?.message?.content;
     if (!content) {
       return {
@@ -180,7 +209,7 @@ export async function handler(event) {
       })
     };
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (String(error.message || '').includes('超时')) {
       return {
         statusCode: 504,
         headers: {
