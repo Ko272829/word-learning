@@ -11,28 +11,25 @@ const buildPrompt = (topic) => `
   "words": [
     {
       "word": "英文单词或短语",
-      "phonetic": "/音标/",
       "pos": "词性缩写，如 n. / v. / adj.",
-      "meaning": "简洁中文释义",
-      "exampleEn": "自然简短的英文例句",
-      "exampleZh": "对应中文翻译"
+      "meaning": "简洁中文释义"
     }
   ]
 }
 3. 返回 6 到 8 个词条。
 4. 单词要和主题高度相关，适合记忆，不要重复。
-5. 所有字段都必须填写；如果是短语，word 字段直接写短语。
-6. 例句要自然、口语化、实用，并尽量简短。
+5. 如果是短语，word 字段直接写短语。
+6. 不要返回音标、例句、额外说明，只返回最核心字段，保证响应速度。
 `.trim();
 
 const sanitizeWord = (item, index, bookId) => ({
   id: `${bookId}_${index}`,
   word: String(item.word || '').trim(),
-  phonetic: String(item.phonetic || '').trim(),
+  phonetic: '',
   pos: String(item.pos || '').trim(),
   meaning: String(item.meaning || '').trim(),
-  exampleEn: String(item.exampleEn || '').trim(),
-  exampleZh: String(item.exampleZh || '').trim()
+  exampleEn: '',
+  exampleZh: ''
 });
 
 const extractJsonObject = (text) => {
@@ -62,7 +59,7 @@ const requestDeepSeek = (apiKey, topic) =>
     const payload = JSON.stringify({
       model: 'deepseek-chat',
       temperature: 0.5,
-      max_tokens: 900,
+      max_tokens: 500,
       messages: [
         {
           role: 'system',
