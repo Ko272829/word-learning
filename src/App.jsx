@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Github, Upload, Trash2, Loader2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud } from 'lucide-react';
+import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud } from 'lucide-react';
+import cet4Raw from './data/cet4.txt?raw';
+import cet6Raw from './data/cet6.txt?raw';
 
 // --- 解析工具 (支持解析 KyleBing 仓库的 txt 和一般 json) ---
 const parseTxt = (text, bookId, bookName) => {
@@ -108,11 +110,15 @@ const generateMCOptions = (correctWord, allBooks) => {
   return [correctFormatted, ...wrongOptions].sort(() => 0.5 - Math.random());
 };
 
+const BUILT_IN_BOOKS = {
+  kb_cet4: parseTxt(cet4Raw, 'kb_cet4', '四级核心'),
+  kb_cet6: parseTxt(cet6Raw, 'kb_cet6', '六级进阶')
+};
+
 export default function VocabularyMaster() {
   const [view, setView] = useState('home'); 
   const [sessionType, setSessionType] = useState('normal'); // 'normal' 或 'smart_review'
   const [selectedBook, setSelectedBook] = useState(null);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   
   // 1. 本地存储：复习进度持久化
@@ -137,7 +143,7 @@ export default function VocabularyMaster() {
     localStorage.setItem('vocab_master_progress', JSON.stringify(userProgress));
   }, [userProgress]);
 
-  const ALL_BOOKS = { ...customBooks };
+  const ALL_BOOKS = { ...BUILT_IN_BOOKS, ...customBooks };
 
   // Session State (Learning Phase)
   const [queue, setQueue] = useState([]);
@@ -213,29 +219,6 @@ export default function VocabularyMaster() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordIndex, view, learnStage]);
-
-  // --- 获取开源词库 ---
-  const downloadGithubBook = async (filename, bookId, bookName) => {
-    setIsDownloading(true);
-    const url = `https://raw.githubusercontent.com/KyleBing/english-vocabulary/master/${encodeURIComponent(filename)}`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const parsedBook = parseTxt(text, bookId, bookName);
-      
-      setCustomBooks(prev => {
-        const next = { ...prev, [bookId]: parsedBook };
-        localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
-        return next;
-      });
-      alert(`🎉 成功导入词库：${bookName}\n共解析了 ${parsedBook.words.length} 个单词！`);
-    } catch (err) {
-      alert("下载失败: " + err.message + "\n可能是网络限制，请尝试手动下载到本地后使用【上传本地词库】功能。");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -597,13 +580,15 @@ export default function VocabularyMaster() {
                   onClick={() => startLearning(book.id)}
                   className="relative group text-left bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col cursor-pointer"
                 >
-                  <button 
-                    onClick={(e) => deleteBook(e, book.id)}
-                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
-                    title="删除自定义词库"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {customBooks[book.id] && (
+                    <button 
+                      onClick={(e) => deleteBook(e, book.id)}
+                      className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
+                      title="删除自定义词库"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-3 bg-slate-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
@@ -636,25 +621,20 @@ export default function VocabularyMaster() {
         <div className="mt-12 bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100">
           <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Download className="w-5 h-5 text-indigo-600" />
-            扩充词汇库 (支持 KyleBing 仓库文件)
+            内置词书与扩充词库
           </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            四级核心与六级进阶已经内置在应用里，朋友打开网页即可直接学习，不再依赖 GitHub 在线下载。您仍然可以继续上传自己的本地词书。
+          </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-            <button 
-              onClick={() => downloadGithubBook('3 四级-乱序.txt', 'kb_cet4', '四级核心 (KyleBing)')}
-              disabled={isDownloading}
-              className="flex-1 min-w-[200px] px-4 py-3 bg-white hover:bg-indigo-50 text-indigo-600 font-medium rounded-xl border border-indigo-200 transition-colors flex items-center justify-center shadow-sm disabled:opacity-70"
-            >
-              {isDownloading ? <Loader2 className="w-5 h-5 animate-spin mr-2"/> : <Github className="w-5 h-5 mr-2" />}
-              直连下载四级库
-            </button>
-            <button 
-              onClick={() => downloadGithubBook('4 六级-乱序.txt', 'kb_cet6', '六级进阶 (KyleBing)')}
-              disabled={isDownloading}
-              className="flex-1 min-w-[200px] px-4 py-3 bg-white hover:bg-indigo-50 text-indigo-600 font-medium rounded-xl border border-indigo-200 transition-colors flex items-center justify-center shadow-sm disabled:opacity-70"
-            >
-              {isDownloading ? <Loader2 className="w-5 h-5 animate-spin mr-2"/> : <Github className="w-5 h-5 mr-2" />}
-              直连下载六级库
-            </button>
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              已内置四级核心
+            </div>
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              已内置六级进阶
+            </div>
             
             <label className="flex-1 min-w-[200px] px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-sm">
               <Upload className="w-5 h-5 mr-2" />
