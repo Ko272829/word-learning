@@ -1,5 +1,6 @@
-const buildPrompt = (topic) => `
+const buildPrompt = (topic, variationHint) => `
 你是英语学习产品的专业词书编辑。请围绕主题“${topic}”生成一本高质量中文学习者词书。
+本次随机采样标签：${variationHint}
 
 输出要求：
 1. 只输出一个 JSON 对象，不要 Markdown，不要额外解释。
@@ -18,6 +19,7 @@ const buildPrompt = (topic) => `
 4. 单词要和主题高度相关，适合记忆，不要重复。
 5. 如果是短语，word 字段直接写短语。
 6. 不要返回音标、例句、额外说明，只返回最核心字段，保证响应速度。
+7. 请尽量避免与另一批同主题词书完全重复，优先换一组不同但仍然贴题的词。
 `.trim();
 
 const json = (data, status = 200) =>
@@ -69,8 +71,9 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const { topic } = await context.request.json();
+    const { topic, variationHint } = await context.request.json();
     const cleanTopic = String(topic || "").trim();
+    const cleanVariationHint = String(variationHint || Date.now()).trim();
     if (!cleanTopic) {
       return json({ error: "请输入词书主题" }, 400);
     }
@@ -95,7 +98,7 @@ export async function onRequestPost(context) {
           },
           {
             role: "user",
-            content: buildPrompt(cleanTopic)
+            content: buildPrompt(cleanTopic, cleanVariationHint)
           }
         ]
       }),

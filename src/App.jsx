@@ -115,6 +115,26 @@ const BUILT_IN_BOOKS = {
   kb_cet6: parseTxt(cet6Raw, 'kb_cet6', '六级进阶')
 };
 
+const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const mergeBookWords = (existingWords, incomingWords, bookId) => {
+  const mergedMap = new Map();
+
+  [...existingWords, ...incomingWords].forEach((word, index) => {
+    const dedupeKey = `${String(word.word || '').trim().toLowerCase()}__${String(word.meaning || '').trim()}`;
+    if (!dedupeKey || mergedMap.has(dedupeKey)) return;
+    mergedMap.set(dedupeKey, {
+      ...word,
+      id: `${bookId}_${mergedMap.size || index}`
+    });
+  });
+
+  return Array.from(mergedMap.values()).map((word, index) => ({
+    ...word,
+    id: `${bookId}_${index}`
+  }));
+};
+
 export default function VocabularyMaster() {
   const [view, setView] = useState('home'); 
   const [sessionType, setSessionType] = useState('normal'); // 'normal' 或 'smart_review'
@@ -140,12 +160,25 @@ export default function VocabularyMaster() {
     }
     return {};
   });
+  const [hiddenBookIds, setHiddenBookIds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vocab_master_hidden_books');
+      if (saved) return JSON.parse(saved);
+    }
+    return [];
+  });
 
   useEffect(() => {
     localStorage.setItem('vocab_master_progress', JSON.stringify(userProgress));
   }, [userProgress]);
 
-  const ALL_BOOKS = { ...BUILT_IN_BOOKS, ...customBooks };
+  useEffect(() => {
+    localStorage.setItem('vocab_master_hidden_books', JSON.stringify(hiddenBookIds));
+  }, [hiddenBookIds]);
+
+  const ALL_BOOKS = Object.fromEntries(
+    Object.entries({ ...BUILT_IN_BOOKS, ...customBooks }).filter(([bookId]) => !hiddenBookIds.includes(bookId))
+  );
 
   const addCustomBook = (book) => {
     setCustomBooks(prev => {
@@ -153,6 +186,37 @@ export default function VocabularyMaster() {
       localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
       return next;
     });
+    setHiddenBookIds(prev => prev.filter(id => id !== book.id));
+  };
+
+  const addOrMergeAiBook = (book, topic) => {
+    const topicKey = normalizeTopicKey(topic);
+    const existingBook = Object.values(customBooks).find((item) => item.aiTopicKey === topicKey);
+    const targetBookId = existingBook?.id || book.id;
+
+    setCustomBooks(prev => {
+      const next = { ...prev };
+
+      if (existingBook) {
+        next[existingBook.id] = {
+          ...existingBook,
+          name: `${topic}词书`,
+          aiTopicKey: topicKey,
+          words: mergeBookWords(existingBook.words, book.words, existingBook.id)
+        };
+      } else {
+        next[book.id] = {
+          ...book,
+          name: `${topic}词书`,
+          aiTopicKey: topicKey
+        };
+      }
+
+      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      return next;
+    });
+
+    setHiddenBookIds(prev => prev.filter(id => id !== targetBookId));
   };
 
   // Session State (Learning Phase)
@@ -257,12 +321,21 @@ export default function VocabularyMaster() {
   const deleteBook = (e, bookId) => {
     e.stopPropagation();
     if (confirm("确定要删除这个词库吗？相关的记忆进度虽然保留，但词库入口将移除。")) {
-      setCustomBooks(prev => {
-        const next = {...prev};
-        delete next[bookId];
-        localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
-        return next;
-      });
+      if (customBooks[bookId]) {
+        setCustomBooks(prev => {
+          const next = {...prev};
+          delete next[bookId];
+          localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+          return next;
+        });
+      } else {
+        setHiddenBookIds(prev => [...new Set([...prev, bookId])]);
+      }
+
+      if (selectedBook === bookId) {
+        setSelectedBook(null);
+        setView('home');
+      }
     }
   };
 
@@ -340,13 +413,14 @@ export default function VocabularyMaster() {
   const handleAiGenerateBook = async () => {
     const topic = aiTopic.trim();
     if (!topic || isAiGenerating) return;
+    const variationHint = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     setIsAiGenerating(true);
     try {
       const res = await fetch('/api/generate-book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic })
+        body: JSON.stringify({ topic, variationHint })
       });
 
       const rawText = await res.text();
@@ -361,9 +435,14 @@ export default function VocabularyMaster() {
         throw new Error(data.error || `生成失败（HTTP ${res.status}）`);
       }
 
-      addCustomBook(data.book);
+      const previousBook = Object.values(customBooks).find((book) => book.aiTopicKey === normalizeTopicKey(topic));
+      addOrMergeAiBook(data.book, topic);
       setAiTopic('');
-      alert(`🎉 AI 词书生成成功：${data.book.name}\n已生成 ${data.book.words.length} 个单词。`);
+      alert(
+        previousBook
+          ? `🎉 AI 词书已合并到：${topic}词书\n本次新增或补充了 ${data.book.words.length} 个候选词。`
+          : `🎉 AI 词书生成成功：${topic}词书\n已生成 ${data.book.words.length} 个单词。`
+      );
     } catch (err) {
       alert(`AI 生成失败：${err.message}`);
     } finally {
@@ -525,7 +604,8 @@ export default function VocabularyMaster() {
   const handleExportData = () => {
     const backupData = {
       progress: userProgress,
-      customBooks: customBooks
+      customBooks: customBooks,
+      hiddenBookIds: hiddenBookIds
     };
     const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -549,6 +629,7 @@ export default function VocabularyMaster() {
           if(confirm("警告：恢复数据将覆盖您当前浏览器的所有进度和词库。确定要继续吗？")) {
             setUserProgress(data.progress);
             setCustomBooks(data.customBooks);
+            setHiddenBookIds(Array.isArray(data.hiddenBookIds) ? data.hiddenBookIds : []);
             alert("🎉 数据恢复成功！");
           }
         } else {
@@ -620,15 +701,13 @@ export default function VocabularyMaster() {
                   onClick={() => startLearning(book.id)}
                   className="relative group text-left bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-indigo-300 transition-all duration-300 flex flex-col cursor-pointer"
                 >
-                  {customBooks[book.id] && (
-                    <button 
-                      onClick={(e) => deleteBook(e, book.id)}
-                      className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
-                      title="删除自定义词库"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  <button 
+                    onClick={(e) => deleteBook(e, book.id)}
+                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
+                    title={customBooks[book.id] ? "删除自定义词库" : "隐藏内置词库"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   
                   <div className="flex justify-between items-start mb-4">
                     <div className="p-3 bg-slate-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
