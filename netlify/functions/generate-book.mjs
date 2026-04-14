@@ -17,7 +17,7 @@ const buildPrompt = (topic) => `
     }
   ]
 }
-3. 返回 18 到 24 个词条。
+3. 返回 10 到 12 个词条。
 4. 单词要和主题高度相关，适合记忆，不要重复。
 5. 所有字段都必须填写；如果是短语，word 字段直接写短语。
 6. 例句要自然、口语化、实用。
@@ -90,6 +90,9 @@ export async function handler(event) {
       };
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
+
     const upstream = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
@@ -98,7 +101,8 @@ export async function handler(event) {
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
-        temperature: 0.9,
+        temperature: 0.7,
+        max_tokens: 1800,
         messages: [
           {
             role: 'system',
@@ -109,8 +113,9 @@ export async function handler(event) {
             content: buildPrompt(cleanTopic)
           }
         ]
-      })
-    });
+      }),
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeoutId));
 
     if (!upstream.ok) {
       const errorText = await upstream.text();
@@ -175,6 +180,16 @@ export async function handler(event) {
       })
     };
   } catch (error) {
+    if (error.name === 'AbortError') {
+      return {
+        statusCode: 504,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'DeepSeek 请求超时，请稍后重试或把主题描述写得更短一些。' })
+      };
+    }
+
     return {
       statusCode: 500,
       headers: {
