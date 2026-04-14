@@ -16,8 +16,21 @@ npm install
 npm run dev
 ```
 
+## Netlify 与 DeepSeek
+
+AI 词书生成功能通过 Netlify Functions 调用 DeepSeek，不会把 API Key 暴露到前端。
+
+在 Netlify 项目里添加环境变量：
+
+```bash
+DEEPSEEK_API_KEY=你的 DeepSeek API Key
+```
+
+然后重新部署站点。
+
 ## 构成
 
 - `src/App.jsx`: 从原始 `背单词.txt` 提取的主应用代码
 - `src/main.jsx`: React 入口
 - `index.html`: 页面入口，使用 Tailwind CDN 提供样式类
+- `netlify/functions/generate-book.mjs`: AI 词书生成服务端函数

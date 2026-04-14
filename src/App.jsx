@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud } from 'lucide-react';
+import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2 } from 'lucide-react';
 import cet4Raw from './data/cet4.txt?raw';
 import cet6Raw from './data/cet6.txt?raw';
 
@@ -120,6 +120,8 @@ export default function VocabularyMaster() {
   const [sessionType, setSessionType] = useState('normal'); // 'normal' 或 'smart_review'
   const [selectedBook, setSelectedBook] = useState(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   
   // 1. 本地存储：复习进度持久化
   const [userProgress, setUserProgress] = useState(() => {
@@ -144,6 +146,14 @@ export default function VocabularyMaster() {
   }, [userProgress]);
 
   const ALL_BOOKS = { ...BUILT_IN_BOOKS, ...customBooks };
+
+  const addCustomBook = (book) => {
+    setCustomBooks(prev => {
+      const next = { ...prev, [book.id]: book };
+      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Session State (Learning Phase)
   const [queue, setQueue] = useState([]);
@@ -234,11 +244,7 @@ export default function VocabularyMaster() {
         if (file.name.endsWith('.json')) parsedBook = parseJson(JSON.parse(content), bookId, bookName);
         else parsedBook = parseTxt(content, bookId, bookName);
         
-        setCustomBooks(prev => {
-          const next = {...prev, [bookId]: parsedBook};
-          localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
-          return next;
-        });
+        addCustomBook(parsedBook);
         alert(`🎉 导入成功！已添加词库：${bookName} (${parsedBook.words.length}词)`);
       } catch (err) {
         alert("导入失败，文件格式有误: " + err.message);
@@ -329,6 +335,33 @@ export default function VocabularyMaster() {
     setMcFeedback(null);
     setLearnStage(2);
     speakText(word.word, { allowUnlock: true });
+  };
+
+  const handleAiGenerateBook = async () => {
+    const topic = aiTopic.trim();
+    if (!topic || isAiGenerating) return;
+
+    setIsAiGenerating(true);
+    try {
+      const res = await fetch('/api/generate-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || '生成失败');
+      }
+
+      addCustomBook(data.book);
+      setAiTopic('');
+      alert(`🎉 AI 词书生成成功：${data.book.name}\n已生成 ${data.book.words.length} 个单词。`);
+    } catch (err) {
+      alert(`AI 生成失败：${err.message}\n请确认 Netlify 已设置 DEEPSEEK_API_KEY，并重新部署最新版本。`);
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   // 阶段 2 单选题点击 (错误即跳过，放入队尾)
@@ -644,6 +677,45 @@ export default function VocabularyMaster() {
           </div>
         </div>
 
+        <div className="mt-8 bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900 mb-3 flex items-center gap-3">
+            <Sparkles className="w-7 h-7 text-indigo-500" />
+            AI 智能生成词书
+          </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            输入一个主题，系统会调用 DeepSeek 自动生成一套可直接学习的单词书，并保存到当前设备。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <input
+              type="text"
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAiGenerateBook();
+              }}
+              placeholder="如：咖啡馆用语、大厂面试、赛博朋克、旅游英语..."
+              className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 bg-white text-lg outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all"
+            />
+            <button
+              onClick={handleAiGenerateBook}
+              disabled={!aiTopic.trim() || isAiGenerating}
+              className="px-8 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 min-w-[160px]"
+            >
+              {isAiGenerating ? (
+                <>
+                  <RotateCcw className="w-5 h-5 animate-spin" />
+                  生成中
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  生成
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* --- 数据备份模块 --- */}
         <div className="mt-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
@@ -755,6 +827,23 @@ export default function VocabularyMaster() {
                     <Volume2 className="w-14 h-14" strokeWidth={2.5} />
                   </button>
                 </div>
+
+                {word.exampleEn && (
+                  <div className="w-full mb-6 text-left bg-indigo-50/60 p-5 rounded-2xl border border-indigo-100/70">
+                    <div className="flex justify-between items-start gap-3">
+                      <p className="text-slate-700 text-lg italic leading-relaxed flex-1">"{word.exampleEn}"</p>
+                      <button
+                        onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
+                        className="text-indigo-400 hover:text-indigo-600 mt-0.5 shrink-0"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {word.exampleZh && (
+                      <p className="text-slate-500 text-sm mt-3 leading-relaxed">{word.exampleZh}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="w-full grid gap-3">
                    {mcOptions.map((opt, i) => {
