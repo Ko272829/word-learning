@@ -19,10 +19,10 @@ const buildPrompt = (topic) => `
     }
   ]
 }
-3. 返回 10 到 12 个词条。
+3. 返回 6 到 8 个词条。
 4. 单词要和主题高度相关，适合记忆，不要重复。
 5. 所有字段都必须填写；如果是短语，word 字段直接写短语。
-6. 例句要自然、口语化、实用。
+6. 例句要自然、口语化、实用，并尽量简短。
 `.trim();
 
 const sanitizeWord = (item, index, bookId) => ({
@@ -61,8 +61,8 @@ const requestDeepSeek = (apiKey, topic) =>
   new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model: 'deepseek-chat',
-      temperature: 0.7,
-      max_tokens: 1800,
+      temperature: 0.5,
+      max_tokens: 900,
       messages: [
         {
           role: 'system',
@@ -84,7 +84,7 @@ const requestDeepSeek = (apiKey, topic) =>
           'Content-Length': Buffer.byteLength(payload),
           Authorization: `Bearer ${apiKey}`
         },
-        timeout: 18000
+        timeout: 15000
       },
       (res) => {
         let body = '';
