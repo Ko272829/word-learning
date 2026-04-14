@@ -59,20 +59,32 @@ const parseJson = (jsonData, bookId, bookName) => {
   return { id: bookId, name: bookName, words };
 };
 
+const SAME_DAY_REVIEW_DELAY_MS = 0;
+
 // --- SRS 核心算法 (SuperMemo-2) ---
 const calculateSM2 = (grade, repetition, interval, easeFactor) => {
   let newRepetition = repetition;
   let newInterval = interval;
   let newEaseFactor = easeFactor;
+  let nextReviewDelay = SAME_DAY_REVIEW_DELAY_MS;
 
   if (grade >= 3) {
-    if (repetition === 0) newInterval = 1;
-    else if (repetition === 1) newInterval = 6;
-    else newInterval = Math.round(interval * easeFactor);
+    if (repetition === 0) {
+      // The first successful recall should come back again the same day.
+      newInterval = 0;
+      nextReviewDelay = SAME_DAY_REVIEW_DELAY_MS;
+    } else if (repetition === 1) {
+      newInterval = 1;
+      nextReviewDelay = 1 * 24 * 60 * 60 * 1000;
+    } else {
+      newInterval = Math.max(2, Math.round(interval * easeFactor));
+      nextReviewDelay = newInterval * 24 * 60 * 60 * 1000;
+    }
     newRepetition += 1;
   } else {
     newRepetition = 0;
-    newInterval = 1;
+    newInterval = 0;
+    nextReviewDelay = SAME_DAY_REVIEW_DELAY_MS;
   }
 
   newEaseFactor = easeFactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
@@ -82,7 +94,7 @@ const calculateSM2 = (grade, repetition, interval, easeFactor) => {
     repetition: newRepetition,
     interval: newInterval,
     easeFactor: newEaseFactor,
-    nextReview: Date.now() + newInterval * 24 * 60 * 60 * 1000 // 未来的时间戳
+    nextReview: Date.now() + nextReviewDelay // 未来的时间戳
   };
 };
 
@@ -1066,6 +1078,27 @@ export default function VocabularyMaster() {
     const word = spellingQueue[currentSpellingIndex];
     if (!word) return null;
 
+    const targetWord = word.word;
+    const normalizedInput = spellingInput.toLowerCase();
+    const normalizedTarget = targetWord.toLowerCase();
+    const spellingSlots = targetWord.split('').map((char, index) => {
+      const typedChar = spellingInput[index] || '';
+      const normalizedTypedChar = normalizedInput[index] || '';
+      const isSeparator = /[\s-']/u.test(char);
+      const hasTypedChar = typedChar.length > 0;
+      const isCorrectChar = normalizedTypedChar === normalizedTarget[index];
+      const showError = spellingFeedback === 'incorrect' && hasTypedChar && !isCorrectChar;
+
+      return {
+        key: `${char}_${index}`,
+        char,
+        typedChar,
+        isSeparator,
+        isCorrectChar,
+        showError
+      };
+    });
+
     // 使用 Set 计算去重后的实际任务进度
     const totalUnique = new Set(spellingQueue.map(w => w.id)).size;
     const remainingUnique = new Set(spellingQueue.slice(currentSpellingIndex).map(w => w.id)).size;
@@ -1122,25 +1155,53 @@ export default function VocabularyMaster() {
           </div>
 
           <form onSubmit={handleSpellingSubmit}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={spellingInput}
-              onChange={(e) => {
-                setSpellingInput(e.target.value);
-                setSpellingFeedback(null); // 修改后自动清除错误状态
-              }}
-              disabled={spellingFeedback === 'correct'} // 仅在正确时锁死输入框
-              placeholder="请输入英文字母..."
-              className={`w-full text-2xl font-mono py-5 px-5 rounded-2xl outline-none border-2 transition-all text-center
-                ${spellingFeedback === 'correct' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 
-                  spellingFeedback === 'incorrect' ? 'border-rose-500 bg-rose-50 text-rose-700 animate-shake' : 
-                  'border-slate-200 bg-slate-50 focus:border-indigo-500 focus:bg-white'}
-              `}
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
-            />
+            <div
+              onClick={() => inputRef.current?.focus()}
+              className={`w-full rounded-2xl border-2 transition-all px-5 py-5 ${
+                spellingFeedback === 'correct'
+                  ? 'border-emerald-500 bg-emerald-50'
+                  : spellingFeedback === 'incorrect'
+                    ? 'border-rose-500 bg-rose-50 animate-shake'
+                    : 'border-slate-200 bg-slate-50 focus-within:border-indigo-500 focus-within:bg-white'
+              }`}
+            >
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 pointer-events-none">
+                {spellingSlots.map((slot) => (
+                  <div
+                    key={slot.key}
+                    className={`min-w-[2.2rem] sm:min-w-[2.6rem] border-b-2 text-center text-2xl font-mono leading-[2.6rem] ${
+                      slot.isSeparator
+                        ? 'border-transparent text-slate-400'
+                        : slot.showError
+                          ? 'border-rose-400 text-rose-600'
+                          : slot.isCorrectChar && slot.typedChar
+                            ? 'border-emerald-400 text-emerald-700'
+                            : 'border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {slot.typedChar || (slot.isSeparator ? slot.char : '_')}
+                  </div>
+                ))}
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={spellingInput}
+                onChange={(e) => {
+                  setSpellingInput(e.target.value);
+                  setSpellingFeedback(null);
+                }}
+                disabled={spellingFeedback === 'correct'}
+                className="sr-only"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                aria-label="拼写输入框"
+              />
+              <p className="mt-4 text-center text-sm text-slate-400">
+                每条横线代表一个字母，输错的位置会标红
+              </p>
+            </div>
             
             <button 
               type="submit"
@@ -1185,9 +1246,26 @@ export default function VocabularyMaster() {
     if (!word) return null;
     
     const targetSentence = word.exampleEn;
-    const targetChars = targetSentence.split('');
-    const inputChars = sentenceInput.split('');
     const isFullyCorrect = sentenceInput === targetSentence;
+    const targetWords = targetSentence.split(' ');
+    const inputWords = sentenceInput.split(' ');
+    const sentenceSlots = targetWords.map((targetPart, index) => {
+      const typedPart = inputWords[index] || '';
+      const showAnswerPart = showSentenceAnswer ? targetPart : '';
+      const isCorrectPart = typedPart === targetPart;
+      const showError = typedPart && !isCorrectPart;
+      const placeholder = '_'.repeat(Math.max(targetPart.length, 2));
+
+      return {
+        key: `${targetPart}_${index}`,
+        targetPart,
+        typedPart,
+        showAnswerPart,
+        isCorrectPart,
+        showError,
+        placeholder
+      };
+    });
 
     // 使用 Set 计算去重后的实际任务进度
     const totalUnique = new Set(sentenceQueue.map(w => w.id)).size;
@@ -1199,24 +1277,38 @@ export default function VocabularyMaster() {
         <div className="text-center mb-8">
           <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-sm font-bold rounded-full mb-4 flex items-center gap-2 justify-center w-max mx-auto">
             <Keyboard className="w-4 h-4"/>
-            情境例句输入 ({currentProgress}/{totalUnique})
+            拼写句子 ({currentProgress}/{totalUnique})
           </span>
-          <h2 className="text-2xl font-bold text-slate-800">请根据中文释义，完成英文例句</h2>
+          <h2 className="text-2xl font-bold text-slate-800">请根据中文提示，拼写完整英文句子</h2>
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
-          <div className="mb-8 flex items-start gap-3">
-            <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><BrainCircuit className="w-4 h-4"/></div>
-            <div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目标中文句意</span>
-              <p className="text-lg text-slate-800 font-medium mt-1">{word.exampleZh}</p>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><BrainCircuit className="w-4 h-4"/></div>
+              <div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目标中文句意</span>
+                <p className="text-lg text-slate-800 font-medium mt-1">{word.exampleZh}</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
+              className="shrink-0 p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full transition-colors"
+              title="播放整句提示"
+            >
+              <Volume2 className="w-5 h-5" />
+            </button>
           </div>
 
           <div 
-            className={`relative w-full min-h-[140px] bg-slate-50 border-2 rounded-2xl p-5 cursor-text transition-colors ${isFullyCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 focus-within:border-indigo-500'}`}
+            className={`relative w-full min-h-[180px] bg-slate-50 border-2 rounded-2xl p-5 cursor-text transition-colors ${isFullyCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 focus-within:border-indigo-500'}`}
             onClick={() => sentenceInputRef.current?.focus()}
           >
+            <div className="mb-4">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目标中文句意</span>
+              <p className="mt-2 text-sm text-slate-500">下方每条横线对应一个英文单词，点击后直接输入整句即可。</p>
+            </div>
             <textarea
               ref={sentenceInputRef}
               value={sentenceInput}
@@ -1226,23 +1318,25 @@ export default function VocabularyMaster() {
               autoCapitalize="off"
               autoComplete="off"
             />
-            <div className="text-[20px] sm:text-2xl font-mono text-left break-words whitespace-pre-wrap pointer-events-none leading-loose">
-              {inputChars.map((char, i) => {
-                const isCorrect = i < targetChars.length && char === targetChars[i];
-                return (
-                  <span key={i} className={isCorrect ? "text-emerald-500" : "text-rose-500 bg-rose-100 underline decoration-rose-500 underline-offset-4"}>
-                    {char}
-                  </span>
-                );
-              })}
-              {!isFullyCorrect && (
-                <span className="inline-block w-2.5 h-6 bg-indigo-500 animate-pulse align-middle ml-0.5" style={{ marginBottom: '-4px' }}></span>
-              )}
-              {showSentenceAnswer && targetChars.slice(inputChars.length).map((char, i) => (
-                <span key={`hint-${i}`} className="text-slate-300">
-                  {char}
-                </span>
+            <div className="flex flex-wrap gap-x-3 gap-y-4 text-[18px] sm:text-xl font-mono pointer-events-none">
+              {sentenceSlots.map((slot) => (
+                <div
+                  key={slot.key}
+                  className={`min-w-[3rem] border-b-2 pb-1 text-center ${
+                    slot.showError
+                      ? 'border-rose-400 text-rose-600'
+                      : slot.isCorrectPart && slot.typedPart
+                        ? 'border-emerald-400 text-emerald-700'
+                        : 'border-slate-300 text-slate-500'
+                  }`}
+                  style={{ minWidth: `${Math.max(slot.targetPart.length, 2) * 0.75}rem` }}
+                >
+                  {slot.typedPart || slot.showAnswerPart || slot.placeholder}
+                </div>
               ))}
+              {!isFullyCorrect && (
+                <span className="inline-block w-2.5 h-6 bg-indigo-500 animate-pulse self-end" />
+              )}
             </div>
             
             {isFullyCorrect && (
