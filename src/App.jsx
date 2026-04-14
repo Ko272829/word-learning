@@ -349,9 +349,16 @@ export default function VocabularyMaster() {
         body: JSON.stringify({ topic })
       });
 
-      const data = await res.json().catch(() => ({ error: '服务端返回了非 JSON 响应' }));
+      const rawText = await res.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = { error: `服务端返回了非 JSON 响应（HTTP ${res.status}）: ${rawText.slice(0, 180)}` };
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || '生成失败');
+        throw new Error(data.error || `生成失败（HTTP ${res.status}）`);
       }
 
       addCustomBook(data.book);

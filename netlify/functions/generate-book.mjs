@@ -33,6 +33,28 @@ const sanitizeWord = (item, index, bookId) => ({
   exampleZh: String(item.exampleZh || '').trim()
 });
 
+const extractJsonObject = (text) => {
+  if (!text) throw new Error('DeepSeek 返回了空内容');
+
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+
+  const fencedMatch = trimmed.match(/```json\s*([\s\S]*?)\s*```/i) || trimmed.match(/```\s*([\s\S]*?)\s*```/);
+  if (fencedMatch) {
+    return JSON.parse(fencedMatch[1].trim());
+  }
+
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    return JSON.parse(trimmed.slice(start, end + 1));
+  }
+
+  throw new Error('无法从 DeepSeek 响应中提取 JSON');
+};
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return {
@@ -77,11 +99,10 @@ export async function handler(event) {
       body: JSON.stringify({
         model: 'deepseek-chat',
         temperature: 0.9,
-        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
-            content: '你必须严格输出合法 JSON。'
+            content: '你是词书生成助手。必须返回一个合法 JSON 对象，不要输出 Markdown 代码块之外的解释。'
           },
           {
             role: 'user',
@@ -114,7 +135,7 @@ export async function handler(event) {
       };
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = extractJsonObject(content);
     if (!Array.isArray(parsed.words) || parsed.words.length === 0) {
       return {
         statusCode: 502,
