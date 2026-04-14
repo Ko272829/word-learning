@@ -48,3 +48,31 @@ DEEPSEEK_API_KEY=你的 DeepSeek API Key
 - `src/main.jsx`: React 入口
 - `index.html`: 页面入口，使用 Tailwind CDN 提供样式类
 - `netlify/functions/generate-book.mjs`: AI 词书生成服务端函数
+
+## 本地音标词库
+
+项目现在支持带音标列的 txt 词书，格式如下：
+
+```text
+word<TAB>/ipa/<TAB>meaning
+```
+
+如果你要把 `open-dict-data/ipa-dict` 的 `en_US.txt` 批量并回现有词书，可以使用：
+
+```bash
+python scripts/enrich_phonetics_from_ipa.py path/to/en_US.txt src/data/cet4.txt src/data/cet6.txt
+```
+
+默认会生成：
+
+```text
+src/data/cet4.phonetic.txt
+src/data/cet6.phonetic.txt
+```
+
+确认内容无误后，再手动替换原始词书文件。  
+如果你要直接覆盖源文件：
+
+```bash
+python scripts/enrich_phonetics_from_ipa.py path/to/en_US.txt src/data/cet4.txt src/data/cet6.txt --in-place
+```

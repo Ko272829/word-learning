@@ -9,10 +9,14 @@ const parseTxt = (text, bookId, bookName) => {
   const words = [];
   lines.forEach((line, index) => {
     if (!line.trim()) return;
-    let word = '', meaningRaw = '';
+    let word = '', meaningRaw = '', phonetic = '';
     
     const parts = line.split('\t');
-    if (parts.length >= 2) {
+    if (parts.length >= 3) {
+      word = parts[0].trim();
+      phonetic = parts[1].trim();
+      meaningRaw = parts.slice(2).join(' ').trim();
+    } else if (parts.length >= 2) {
       word = parts[0].trim();
       meaningRaw = parts.slice(1).join(' ').trim();
     } else {
@@ -34,7 +38,7 @@ const parseTxt = (text, bookId, bookName) => {
       words.push({
         id: `${bookId}_${index}`,
         bookId,
-        word, phonetic: '', pos, meaning, exampleEn: '', exampleZh: ''
+        word, phonetic, pos, meaning, exampleEn: '', exampleZh: ''
       });
     }
   });
@@ -393,6 +397,8 @@ export default function VocabularyMaster() {
   const [sentenceInput, setSentenceInput] = useState('');
   const [showSentenceAnswer, setShowSentenceAnswer] = useState(false);
   const [usedHint, setUsedHint] = useState(false);
+  const [sentenceSubmitted, setSentenceSubmitted] = useState(false);
+  const [sentenceHadMistake, setSentenceHadMistake] = useState(false);
 
   const inputRef = useRef(null);
   const sentenceInputRef = useRef(null);
@@ -567,45 +573,14 @@ export default function VocabularyMaster() {
   };
 
   // --- 智能复习逻辑 ---
-  const startSmartReview = async () => {
+  const startSmartReview = () => {
     if (isPreparingReview) return;
 
     const dueWords = getDueWords();
     if (dueWords.length === 0) return;
 
-    setIsPreparingReview(true);
-    let sessionReviews = dueWords.slice(0, 40);
-
-    const missingExampleGroups = sessionReviews
-      .filter((item) => !item.exampleEn || !item.exampleZh)
-      .reduce((groups, item) => {
-        const targetBookId = item.bookId || item.sourceBookId || item.id.split('_').slice(0, -1).join('_');
-        if (!targetBookId) return groups;
-        if (!groups[targetBookId]) groups[targetBookId] = [];
-        groups[targetBookId].push(item);
-        return groups;
-      }, {});
-
-    try {
-      for (const [bookId, words] of Object.entries(missingExampleGroups)) {
-        const uniqueWords = Array.from(new Map(words.map((item) => [item.id, item])).values());
-        if (uniqueWords.length > 0) {
-          const updatedBook = await enrichExamplesForBook(bookId, uniqueWords);
-          if (updatedBook?.words) {
-            const updatedMap = new Map(updatedBook.words.map((item) => [item.id, item]));
-            sessionReviews = sessionReviews.map((item) => updatedMap.get(item.id) || item);
-          }
-        }
-      }
-    } catch (error) {
-      alert(`复习例句准备失败：${error.message}`);
-    } finally {
-      setExampleGenerationState({ bookId: null, completed: 0, total: 0 });
-      setIsPreparingReview(false);
-    }
-
     setSessionType('smart_review');
-    setSpellingQueue(sessionReviews);
+    setSpellingQueue(dueWords.slice(0, 40));
     setCurrentSpellingIndex(0);
     setSpellingInput('');
     setSpellingFeedback(null);
@@ -761,6 +736,53 @@ export default function VocabularyMaster() {
     }
   };
 
+  const proceedToSentencePractice = async (candidateWords) => {
+    const uniqueCandidates = Array.from(new Map(candidateWords.map((item) => [item.id, item])).values());
+    const missingExampleGroups = uniqueCandidates
+      .filter((item) => !item.exampleEn || !item.exampleZh)
+      .reduce((groups, item) => {
+        const targetBookId = item.bookId || item.sourceBookId || item.id.split('_').slice(0, -1).join('_');
+        if (!targetBookId) return groups;
+        if (!groups[targetBookId]) groups[targetBookId] = [];
+        groups[targetBookId].push(item);
+        return groups;
+      }, {});
+
+    let hydratedCandidates = uniqueCandidates;
+    if (Object.keys(missingExampleGroups).length > 0) {
+      setIsPreparingReview(true);
+      try {
+        for (const [bookId, words] of Object.entries(missingExampleGroups)) {
+          const updatedBook = await enrichExamplesForBook(bookId, words);
+          if (updatedBook?.words) {
+            const updatedMap = new Map(updatedBook.words.map((item) => [item.id, item]));
+            hydratedCandidates = hydratedCandidates.map((item) => updatedMap.get(item.id) || item);
+          }
+        }
+      } catch (error) {
+        alert(`例句准备失败：${error.message}`);
+      } finally {
+        setExampleGenerationState({ bookId: null, completed: 0, total: 0 });
+        setIsPreparingReview(false);
+      }
+    }
+
+    const validSentences = hydratedCandidates.filter((item) => item.exampleEn && item.exampleZh);
+    if (validSentences.length === 0) {
+      finishSessionBatch();
+      return;
+    }
+
+    setSentenceQueue(validSentences);
+    setCurrentSentenceIndex(0);
+    setSentenceInput('');
+    setShowSentenceAnswer(false);
+    setUsedHint(false);
+    setSentenceSubmitted(false);
+    setSentenceHadMistake(false);
+    setView('sentence_practice');
+  };
+
   // 拼写测验提交 (强制要求拼写正确后才进入下一个)
   const handleSpellingSubmit = (e) => {
     e.preventDefault();
@@ -796,21 +818,7 @@ export default function VocabularyMaster() {
           setSpellingFeedback(null);
           setCurrentWordMistakes(0);
         } else {
-          // 拼写全通过后，萃取有例句的单词进入句子环节（去重处理，防止因循环导致相同句子出现多次）
-          const validSentences = spellingQueue.filter(w => w.exampleEn && w.exampleZh);
-          if (validSentences.length > 0) {
-            const uniqueSentences = Array.from(new Set(validSentences.map(w => w.id)))
-              .map(id => validSentences.find(w => w.id === id));
-            
-            setSentenceQueue(uniqueSentences);
-            setCurrentSentenceIndex(0);
-            setSentenceInput('');
-            setShowSentenceAnswer(false);
-            setUsedHint(false);
-            setView('sentence_practice');
-          } else {
-            finishSessionBatch();
-          }
+          proceedToSentencePractice(spellingQueue);
         }
       }, 1000);
     } else {
@@ -824,12 +832,31 @@ export default function VocabularyMaster() {
   const handleShowSentenceAnswer = () => {
     setShowSentenceAnswer(true);
     setUsedHint(true);
+    setSentenceHadMistake(true);
+  };
+
+  const handleSentenceSubmit = () => {
+    if (!sentenceInput.trim()) return;
+
+    const normalizeSentenceWhitespace = (text) => String(text || '').trim().replace(/\s+/g, ' ');
+    const word = sentenceQueue[currentSentenceIndex];
+    const targetSentence = normalizeSentenceWhitespace(word?.exampleEn);
+    const currentSentence = normalizeSentenceWhitespace(sentenceInput);
+    const isCorrect = currentSentence === targetSentence;
+
+    setSentenceSubmitted(true);
+    if (isCorrect) {
+      handleSentenceNext();
+      return;
+    }
+
+    setSentenceHadMistake(true);
   };
 
   const handleSentenceNext = () => {
     const word = sentenceQueue[currentSentenceIndex];
     // 如果使用了提示或之前错过，则加入队尾
-    if (usedHint || word._snMistake) {
+    if (usedHint || sentenceHadMistake || word._snMistake) {
       setSentenceQueue(prev => [...prev, { ...word, _snMistake: true }]);
     }
 
@@ -838,7 +865,11 @@ export default function VocabularyMaster() {
       setSentenceInput('');
       setShowSentenceAnswer(false);
       setUsedHint(false);
+      setSentenceSubmitted(false);
+      setSentenceHadMistake(false);
     } else {
+      setSentenceSubmitted(false);
+      setSentenceHadMistake(false);
       finishSessionBatch();
     }
   };
@@ -1649,7 +1680,7 @@ export default function VocabularyMaster() {
       const typedPart = inputWords[index] || '';
       const showAnswerPart = showSentenceAnswer ? targetPart : '';
       const isCorrectPart = typedPart === targetPart;
-      const showError = typedPart && !isCorrectPart;
+      const showError = sentenceSubmitted && typedPart && !isCorrectPart;
       const placeholder = '_'.repeat(Math.max(targetPart.length, 2));
 
       return {
@@ -1708,7 +1739,10 @@ export default function VocabularyMaster() {
             <textarea
               ref={sentenceInputRef}
               value={sentenceInput}
-              onChange={(e) => setSentenceInput(e.target.value)}
+              onChange={(e) => {
+                setSentenceInput(e.target.value);
+                if (sentenceSubmitted) setSentenceSubmitted(false);
+              }}
               className="absolute inset-0 w-full h-full opacity-0 resize-none cursor-text p-5"
               spellCheck="false"
               autoCapitalize="off"
@@ -1752,15 +1786,19 @@ export default function VocabularyMaster() {
               </button>
             )}
             <button
-              onClick={() => {
-                if(isFullyCorrect) handleSentenceNext();
-              }}
-              className={`flex-1 py-4 font-bold rounded-2xl flex items-center justify-center transition-all ${isFullyCorrect ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+              onClick={handleSentenceSubmit}
+              disabled={!sentenceInput.trim()}
+              className={`flex-1 py-4 font-bold rounded-2xl flex items-center justify-center transition-all ${sentenceInput.trim() ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
             >
-              {isFullyCorrect ? '完全正确，下一个' : '请输入完整且正确的句子'}
+              {isFullyCorrect ? '完全正确，下一个' : sentenceSubmitted ? '继续修改句子' : '提交句子'}
               {isFullyCorrect && <ArrowRight className="ml-2 w-5 h-5" />}
             </button>
           </div>
+          {sentenceSubmitted && !isFullyCorrect && !showSentenceAnswer && (
+            <p className="mt-4 text-sm text-rose-500 text-center animate-in fade-in">
+              句子还没有完全拼对，修改后再提交。只有提交后才会标出错误位置。
+            </p>
+          )}
           {usedHint && !isFullyCorrect && (
             <p className="mt-4 text-sm text-amber-500 text-center animate-in fade-in">使用提示后，该句子将在队尾重新循环</p>
           )}
