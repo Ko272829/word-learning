@@ -169,6 +169,8 @@ const CHUNKED_BUILT_IN_BOOKS = {
 };
 
 const EXAMPLE_BATCH_SIZE = 20;
+const REVIEW_SENTENCE_MISTAKE_THRESHOLD = 2;
+const NORMAL_SESSION_BATCH_SIZE = 10;
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeBookName = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeExampleKey = (word, meaning) =>
@@ -378,6 +380,8 @@ export default function VocabularyMaster() {
   const [queue, setQueue] = useState([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [learnedInSession, setLearnedInSession] = useState([]);
+  const [showBreakPrompt, setShowBreakPrompt] = useState(false);
+  const [nextBatchPreviewCount, setNextBatchPreviewCount] = useState(0);
   
   // 3-Stage Learning State
   const [learnStage, setLearnStage] = useState(1); // 1:展示, 2:测验, 3:巩固
@@ -587,15 +591,15 @@ export default function VocabularyMaster() {
     setView('spelling');
   };
 
-  // --- 正常学习逻辑 ---
-  const startLearning = (bookId) => {
-    setSelectedBook(bookId);
-    const bookWords = ALL_BOOKS[bookId].words;
-    
+  const buildNormalSessionQueue = (bookId) => {
+    const book = ALL_BOOKS[bookId];
+    if (!book) return [];
+
+    const bookWords = book.words;
     const now = Date.now();
     const reviews = [];
     const newWords = [];
-    
+
     bookWords.forEach(w => {
       const progress = userProgress[w.id];
       if (!progress) newWords.push(w);
@@ -603,10 +607,18 @@ export default function VocabularyMaster() {
     });
 
     reviews.sort((a, b) => userProgress[a.id].nextReview - userProgress[b.id].nextReview);
-    
-    const sessionReviews = reviews.slice(0, 10);
-    const sessionNew = newWords.slice(0, 10 - sessionReviews.length);
-    const sessionQueue = [...sessionReviews, ...sessionNew];
+
+    const sessionReviews = reviews.slice(0, NORMAL_SESSION_BATCH_SIZE);
+    const sessionNew = newWords.slice(0, Math.max(0, NORMAL_SESSION_BATCH_SIZE - sessionReviews.length));
+    return [...sessionReviews, ...sessionNew];
+  };
+
+  // --- 正常学习逻辑 ---
+  const startLearning = (bookId) => {
+    setSelectedBook(bookId);
+    setShowBreakPrompt(false);
+    setNextBatchPreviewCount(0);
+    const sessionQueue = buildNormalSessionQueue(bookId);
 
     if (sessionQueue.length === 0) {
       setView('finished');
@@ -721,15 +733,34 @@ export default function VocabularyMaster() {
     setView('learning');
   };
 
-  const finishSessionBatch = () => {
+  const handleContinueLearning = () => {
+    if (!selectedBook) {
+      setShowBreakPrompt(false);
+      setView('home');
+      return;
+    }
+
+    startLearning(selectedBook);
+  };
+
+  const handleTakeBreak = () => {
+    setShowBreakPrompt(false);
+    setNextBatchPreviewCount(0);
     setLearnedInSession([]);
+    setView('home');
+  };
+
+  const finishSessionBatch = () => {
     if (sessionType === 'smart_review') {
+      setLearnedInSession([]);
       setView('finished');
     } else {
-      // 检查是否还有剩余未学习的词
-      const remainingUnique = new Set(queue.slice(currentWordIndex + 1).map(w => w.id)).size;
-      if (remainingUnique > 0) {
-        moveToNextWord();
+      const nextSessionQueue = selectedBook ? buildNormalSessionQueue(selectedBook) : [];
+      setLearnedInSession([]);
+
+      if (nextSessionQueue.length > 0) {
+        setNextBatchPreviewCount(nextSessionQueue.length);
+        setShowBreakPrompt(true);
       } else {
         setView('finished');
       }
@@ -738,7 +769,16 @@ export default function VocabularyMaster() {
 
   const proceedToSentencePractice = async (candidateWords) => {
     const uniqueCandidates = Array.from(new Map(candidateWords.map((item) => [item.id, item])).values());
-    const missingExampleGroups = uniqueCandidates
+    const sentenceCandidates = sessionType === 'smart_review'
+      ? uniqueCandidates.filter((item) => (item._reviewMistakeCount || 0) > REVIEW_SENTENCE_MISTAKE_THRESHOLD)
+      : uniqueCandidates;
+
+    if (sentenceCandidates.length === 0) {
+      finishSessionBatch();
+      return;
+    }
+
+    const missingExampleGroups = sentenceCandidates
       .filter((item) => !item.exampleEn || !item.exampleZh)
       .reduce((groups, item) => {
         const targetBookId = item.bookId || item.sourceBookId || item.id.split('_').slice(0, -1).join('_');
@@ -748,7 +788,7 @@ export default function VocabularyMaster() {
         return groups;
       }, {});
 
-    let hydratedCandidates = uniqueCandidates;
+    let hydratedCandidates = sentenceCandidates;
     if (Object.keys(missingExampleGroups).length > 0) {
       setIsPreparingReview(true);
       try {
@@ -825,6 +865,14 @@ export default function VocabularyMaster() {
       setSpellingFeedback('incorrect');
       playWordAudio(currentWord.word, { allowUnlock: true }); // 拼错时自动播放读音辅助记忆
       setCurrentWordMistakes(prev => prev + 1); // 记录错误，触发循环机制
+
+      if (sessionType === 'smart_review') {
+        setSpellingQueue(prev => prev.map((item, index) => (
+          index === currentSpellingIndex
+            ? { ...item, _reviewMistakeCount: (item._reviewMistakeCount || 0) + 1 }
+            : item
+        )));
+      }
     }
   };
 
@@ -1860,6 +1908,38 @@ export default function VocabularyMaster() {
         {view === 'sentence_practice' && renderSentencePractice()}
         {view === 'finished' && renderFinished()}
       </main>
+
+      {showBreakPrompt && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.55)]">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-500 ring-1 ring-amber-100">
+              <Flame className="h-7 w-7" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-2xl font-black text-slate-900">先休息一会儿</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-500">
+                这一轮 10 个单词已经完成。现在可以先回首页休息，也可以继续学习下一批
+                {nextBatchPreviewCount > 0 ? ` ${nextBatchPreviewCount} ` : ' '}
+                个单词。
+              </p>
+            </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={handleTakeBreak}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                休息一会儿
+              </button>
+              <button
+                onClick={handleContinueLearning}
+                className="rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
+              >
+                继续学习
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes shake {
