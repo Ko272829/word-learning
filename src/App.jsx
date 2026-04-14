@@ -127,6 +127,34 @@ const BUILT_IN_BOOKS = {
   kb_cet6: parseTxt(cet6Raw, 'kb_cet6', '六级进阶')
 };
 
+const splitBookIntoChunks = (book, chunkSize = 2000) => {
+  const totalChunks = Math.ceil(book.words.length / chunkSize);
+
+  return Object.fromEntries(
+    Array.from({ length: totalChunks }, (_, chunkIndex) => {
+      const start = chunkIndex * chunkSize;
+      const end = start + chunkSize;
+      const chunkWords = book.words.slice(start, end);
+      const chunkNumber = chunkIndex + 1;
+
+      return [
+        `${book.id}_part_${chunkNumber}`,
+        {
+          id: `${book.id}_part_${chunkNumber}`,
+          name: `${book.name} ${chunkNumber}册`,
+          words: chunkWords,
+          sourceBookId: book.id
+        }
+      ];
+    })
+  );
+};
+
+const CHUNKED_BUILT_IN_BOOKS = {
+  ...splitBookIntoChunks(BUILT_IN_BOOKS.kb_cet4),
+  ...splitBookIntoChunks(BUILT_IN_BOOKS.kb_cet6)
+};
+
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeBookName = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
@@ -197,7 +225,11 @@ export default function VocabularyMaster() {
   }, [hiddenBookIds]);
 
   const ALL_BOOKS = Object.fromEntries(
-    Object.entries({ ...BUILT_IN_BOOKS, ...customBooks }).filter(([bookId]) => !hiddenBookIds.includes(bookId))
+    Object.entries({ ...CHUNKED_BUILT_IN_BOOKS, ...customBooks }).filter(([bookId, book]) => {
+      if (hiddenBookIds.includes(bookId)) return false;
+      if (book?.sourceBookId && hiddenBookIds.includes(book.sourceBookId)) return false;
+      return true;
+    })
   );
 
   const addCustomBook = (book) => {
@@ -324,7 +356,8 @@ export default function VocabularyMaster() {
       setAudioUnlocked(true);
     }
 
-    const shouldUseYoudao = typeof window !== 'undefined' && /^[a-zA-Z][a-zA-Z-' ]*$/.test(normalizedText);
+    const shouldUseYoudao =
+      typeof window !== 'undefined' && /^[a-zA-Z][a-zA-Z' -]*$/.test(normalizedText);
     if (!shouldUseYoudao) {
       speakText(normalizedText, { allowUnlock });
       return;
@@ -1084,7 +1117,7 @@ export default function VocabularyMaster() {
     const spellingSlots = targetWord.split('').map((char, index) => {
       const typedChar = spellingInput[index] || '';
       const normalizedTypedChar = normalizedInput[index] || '';
-      const isSeparator = /[\s-']/u.test(char);
+      const isSeparator = char === ' ' || char === '-' || char === "'";
       const hasTypedChar = typedChar.length > 0;
       const isCorrectChar = normalizedTypedChar === normalizedTarget[index];
       const showError = spellingFeedback === 'incorrect' && hasTypedChar && !isCorrectChar;
@@ -1245,10 +1278,13 @@ export default function VocabularyMaster() {
     const word = sentenceQueue[currentSentenceIndex];
     if (!word) return null;
     
+    const normalizeSentenceWhitespace = (text) => String(text || '').trim().replace(/\s+/g, ' ');
     const targetSentence = word.exampleEn;
-    const isFullyCorrect = sentenceInput === targetSentence;
-    const targetWords = targetSentence.split(' ');
-    const inputWords = sentenceInput.split(' ');
+    const normalizedTargetSentence = normalizeSentenceWhitespace(targetSentence);
+    const normalizedInputSentence = normalizeSentenceWhitespace(sentenceInput);
+    const isFullyCorrect = normalizedInputSentence === normalizedTargetSentence;
+    const targetWords = normalizedTargetSentence.split(' ');
+    const inputWords = normalizedInputSentence ? normalizedInputSentence.split(' ') : [];
     const sentenceSlots = targetWords.map((targetPart, index) => {
       const typedPart = inputWords[index] || '';
       const showAnswerPart = showSentenceAnswer ? targetPart : '';
