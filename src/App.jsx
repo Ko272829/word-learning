@@ -258,6 +258,7 @@ export default function VocabularyMaster() {
   const inputRef = useRef(null);
   const sentenceInputRef = useRef(null);
   const voicesRef = useRef([]);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
@@ -270,6 +271,15 @@ export default function VocabularyMaster() {
     window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
     return () => {
       window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -293,6 +303,53 @@ export default function VocabularyMaster() {
     window.speechSynthesis.speak(utterance);
   };
 
+  const playWordAudio = (text, { allowUnlock = false } = {}) => {
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) return;
+    if (!audioUnlocked && !allowUnlock) return;
+
+    if (allowUnlock && !audioUnlocked) {
+      setAudioUnlocked(true);
+    }
+
+    const shouldUseYoudao = typeof window !== 'undefined' && /^[a-zA-Z][a-zA-Z-' ]*$/.test(normalizedText);
+    if (!shouldUseYoudao) {
+      speakText(normalizedText, { allowUnlock });
+      return;
+    }
+
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      const audio = new Audio(`https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(normalizedText)}&type=2`);
+      audioRef.current = audio;
+      audio.onerror = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+        }
+        speakText(normalizedText, { allowUnlock });
+      };
+      audio.onended = () => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+        }
+      };
+      audio.play().catch(() => {
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+        }
+        speakText(normalizedText, { allowUnlock });
+      });
+    } catch {
+      speakText(normalizedText, { allowUnlock });
+    }
+  };
+
   useEffect(() => {
     if (view === 'spelling' && inputRef.current) inputRef.current.focus();
     if (view === 'sentence_practice' && sentenceInputRef.current) sentenceInputRef.current.focus();
@@ -301,7 +358,7 @@ export default function VocabularyMaster() {
   // 自动播放学习阶段一的单词音频
   useEffect(() => {
     if (view === 'learning' && learnStage === 1 && queue[currentWordIndex]) {
-      speakText(queue[currentWordIndex].word);
+      playWordAudio(queue[currentWordIndex].word);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordIndex, view, learnStage]);
@@ -419,7 +476,7 @@ export default function VocabularyMaster() {
     setMcOptions(generateMCOptions(word, ALL_BOOKS));
     setMcFeedback(null);
     setLearnStage(2);
-    speakText(word.word, { allowUnlock: true });
+    playWordAudio(word.word, { allowUnlock: true });
   };
 
   const handleAiGenerateBook = async () => {
@@ -469,13 +526,13 @@ export default function VocabularyMaster() {
     setMcFeedback(opt); 
     
     if (opt === correctFormatted) {
-      speakText(word.word, { allowUnlock: true });
+      playWordAudio(word.word, { allowUnlock: true });
       setTimeout(() => {
         setLearnStage(3);
         setMcFeedback(null);
       }, 800);
     } else {
-      speakText(word.word, { allowUnlock: true });
+      playWordAudio(word.word, { allowUnlock: true });
       setTimeout(() => {
         // 选择错误，加入队列末尾重新循环
         setQueue(prev => [...prev, { ...word, _mcMistake: true }]);
@@ -540,7 +597,7 @@ export default function VocabularyMaster() {
     
     if (spellingInput.trim().toLowerCase() === targetWord) {
       setSpellingFeedback('correct');
-      speakText(targetWord, { allowUnlock: true });
+      playWordAudio(targetWord, { allowUnlock: true });
       
       const hasMistakeOnThisAttempt = currentWordMistakes > 0;
       // 只有从来没在此 Session 拼错过，且本次也没有输错，才判定为掌握(Grade 4)
@@ -583,7 +640,7 @@ export default function VocabularyMaster() {
       }, 1000);
     } else {
       setSpellingFeedback('incorrect');
-      speakText(currentWord.word, { allowUnlock: true }); // 拼错时自动播放读音辅助记忆
+      playWordAudio(currentWord.word, { allowUnlock: true }); // 拼错时自动播放读音辅助记忆
       setCurrentWordMistakes(prev => prev + 1); // 记录错误，触发循环机制
     }
   };
@@ -885,7 +942,7 @@ export default function VocabularyMaster() {
                     </span>
                   )}
                   <button 
-                    onClick={() => speakText(word.word, { allowUnlock: true })}
+                    onClick={() => playWordAudio(word.word, { allowUnlock: true })}
                     className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors bg-indigo-50/50"
                   >
                     <Volume2 className="w-6 h-6" />
@@ -918,7 +975,7 @@ export default function VocabularyMaster() {
               <div className="w-full flex flex-col items-center animate-in zoom-in-95 duration-300">
                 <div className="mb-8">
                   <button
-                    onClick={() => speakText(word.word, { allowUnlock: true })}
+                    onClick={() => playWordAudio(word.word, { allowUnlock: true })}
                     className="w-28 h-28 bg-[#f0f5ff] text-[#2563eb] rounded-full flex items-center justify-center mx-auto hover:bg-[#e0ebff] transition-all active:scale-95 shadow-sm"
                   >
                     <Volume2 className="w-14 h-14" strokeWidth={2.5} />
@@ -1044,7 +1101,7 @@ export default function VocabularyMaster() {
               {spellingFeedback !== 'correct' && (
                 <button
                   type="button"
-                  onClick={() => speakText(word.word, { allowUnlock: true })}
+                  onClick={() => playWordAudio(word.word, { allowUnlock: true })}
                   className="shrink-0 p-2 text-amber-500 hover:bg-amber-100 rounded-full transition-colors group -mt-1"
                   title="播放读音提示"
                 >
