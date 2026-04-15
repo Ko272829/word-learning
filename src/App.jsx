@@ -242,7 +242,6 @@ export default function VocabularyMaster() {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isPreparingReview, setIsPreparingReview] = useState(false);
   const [exampleGenerationState, setExampleGenerationState] = useState({ bookId: null, completed: 0, total: 0 });
-  const activeLearningQueue = queue.length ? queue : LEARNING_PAGE_DEMO_WORDS;
   
   // 1. 本地存储：复习进度持久化
   const [userProgress, setUserProgress] = useState(() => {
@@ -415,6 +414,7 @@ export default function VocabularyMaster() {
   const [learnedInSession, setLearnedInSession] = useState([]);
   const [showBreakPrompt, setShowBreakPrompt] = useState(false);
   const [nextBatchPreviewCount, setNextBatchPreviewCount] = useState(0);
+  const activeLearningQueue = queue.length ? queue : LEARNING_PAGE_DEMO_WORDS;
   
   // 3-Stage Learning State
   const [learnStage, setLearnStage] = useState(1); // 1:展示, 2:测验, 3:巩固
