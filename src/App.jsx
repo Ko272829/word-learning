@@ -150,7 +150,7 @@ const splitBookIntoChunks = (book, chunkSize = 2000) => {
         `${book.id}_part_${chunkNumber}`,
         {
           id: `${book.id}_part_${chunkNumber}`,
-          name: `${book.name} ${chunkNumber}鍐宍,
+          name: `${book.name} ${chunkNumber}`,
           words: chunkWords.map((word) => ({
             ...word,
             bookId: `${book.id}_part_${chunkNumber}`,
@@ -179,9 +179,9 @@ const LEARNING_PAGE_DEMO_WORDS = [
     word: 'paradox',
     phonetic: '/藞p忙r蓹d蓲ks/',
     pos: 'n.',
-    meaning: '鎮栬锛涜嚜鐩哥煕鐩?,
+    meaning: 'paradox; self-contradiction',
     exampleEn: 'It sounds like a paradox, but both ideas are true.',
-    exampleZh: '杩欏惉璧锋潵鍍忎釜鎮栬锛屼絾涓や釜瑙傜偣閮芥垚绔嬨€?
+    exampleZh: 'This sounds like a paradox, but both ideas are true.',
   },
   {
     id: 'demo_1',
@@ -191,7 +191,7 @@ const LEARNING_PAGE_DEMO_WORDS = [
     pos: 'n.',
     meaning: '鍏ュ彛锛涗娇鐢ㄦ潈',
     exampleEn: 'Students have access to the lab after class.',
-    exampleZh: '瀛︾敓涓嬭鍚庡彲浠ヤ娇鐢ㄥ疄楠屽銆?
+    exampleZh: 'Students can use the lab after class.',
   },
   {
     id: 'demo_2',
@@ -199,9 +199,9 @@ const LEARNING_PAGE_DEMO_WORDS = [
     word: 'generous',
     phonetic: '/藞d蕭en蓹r蓹s/',
     pos: 'adj.',
-    meaning: '鎱锋叏鐨勶紱澶ф柟鐨?,
+    meaning: 'generous; willing to share',
     exampleEn: 'She was generous enough to share her notes.',
-    exampleZh: '濂瑰緢澶ф柟锛屾妸鑷繁鐨勭瑪璁板垎浜簡鍑烘潵銆?
+    exampleZh: 'She was generous enough to share her notes.',
   }
 ];
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -223,12 +223,12 @@ const getBookCategory = (book) => {
 };
 
 const getBookDescription = (book) => {
-  if (book?.aiTopicKey) return '鏍规嵁涓婚浠庣幇鏈夎瘝搴撲腑绛涢€夌敓鎴愶紝閫傚悎蹇€熷缓绔嬩笓棰樿瘝姹囨竻鍗曘€?;
+  if (book?.aiTopicKey) return 'AI-selected topic book built from the local vocabulary pool.';
   const category = getBookCategory(book);
-  if (category === '鍥涚骇') return '瑕嗙洊鍥涚骇鏍稿績璇嶆眹锛岄€傚悎鏃ュ父鑳岃瘝涓庡熀纭€澶嶄範銆?;
-  if (category === '鍏骇') return '瑕嗙洊鍏骇楂橀涓庤繘闃惰瘝姹囷紝閫傚悎鎻愬崌闃呰涓庡啓浣滆瘝姹囬噺銆?;
-  if (category === '鑰冪爺') return '瑕嗙洊鑰冪爺鑻辫鏍稿績璇嶆眹锛岄€傚悎闀垮懆鏈熺郴缁熷涔犮€?;
-  return '鍙姞鍏ラ椤碉紝浣滀负浣犵殑涓汉瀛︿範璇嶄功鎸佺画璺熻繘銆?;
+  if (category === '鍥涚骇') return 'Core CET-4 vocabulary for daily memorization and review.';
+  if (category === '鍏骇') return 'Advanced CET-6 vocabulary for reading and writing growth.';
+  if (category === '鑰冪爺') return 'Core postgraduate exam vocabulary for long-term review.';
+  return 'Add this book to your home page and keep tracking your study progress.';
 };
 
 const VIEW_PATHS = {
@@ -555,7 +555,7 @@ export default function VocabularyMaster() {
         });
       } catch (error) {
         if (error?.name === 'AbortError') {
-          throw new Error('琛ヤ緥鍙ヨ姹傝秴鏃讹紝璇风◢鍚庨噸璇曘€?);
+          throw new Error('Example request timed out. Please try again later.');
         }
         throw error;
       }
@@ -962,7 +962,7 @@ export default function VocabularyMaster() {
 
   const deleteBook = (e, bookId) => {
     e.stopPropagation();
-    if (confirm("纭畾瑕佸垹闄よ繖涓瘝搴撳悧锛熺浉鍏崇殑璁板繂杩涘害铏界劧淇濈暀锛屼絾璇嶅簱鍏ュ彛灏嗙Щ闄ゃ€?)) {
+    if (confirm("Delete this book entry? Related progress is kept, but the book entry will be removed.")) {
       if (!isBuiltInBook(bookId) && customBooks[bookId]) {
         setCustomBooks(prev => {
           const next = {...prev};
@@ -1020,8 +1020,8 @@ export default function VocabularyMaster() {
     e.stopPropagation();
     const isCustomBook = Boolean(customBooks[bookId]);
     const confirmMessage = isCustomBook
-      ? "纭畾瑕佸垹闄よ繖鏈嚜瀹氫箟璇嶄功鍚楋紵鍒犻櫎鍚庝細鍚屾椂浠庤瘝涔﹀簱鍜岄椤电Щ闄ゃ€?
-      : "纭畾瑕佹妸杩欐湰璇嶄功浠庨椤电Щ闄ゅ悧锛熷畠浠嶇劧浼氫繚鐣欏湪璇嶄功搴撻噷銆?;
+      ? 'Delete this custom book? It will be removed from both the library and home.'
+      : 'Remove this book from home? It will still stay in the library.';
 
     if (!confirm(confirmMessage)) return;
 
@@ -1161,7 +1161,7 @@ export default function VocabularyMaster() {
     const candidates = buildAiCandidatePool(topic);
 
     if (candidates.length < 6) {
-      alert('褰撳墠鏈湴璇嶅簱閲屽彲渚涚瓫閫夌殑鍊欓€夎瘝涓嶈冻锛屾棤娉曠敓鎴愪富棰樿瘝涔︺€?);
+      alert('Not enough candidate words in the local vocabulary to build this topic book.');
       return;
     }
 
@@ -1476,14 +1476,14 @@ export default function VocabularyMaster() {
             setCustomBooks(data.customBooks);
             setHiddenBookIds(Array.isArray(data.hiddenBookIds) ? data.hiddenBookIds : []);
             setSelectedBookIds(Array.isArray(data.selectedBookIds) ? data.selectedBookIds : []);
-            alert("馃帀 鏁版嵁鎭㈠鎴愬姛锛?);
+            alert('Backup restored successfully.');
           }
         } else {
           // 鍏煎鏅€氱殑璇嶅簱 JSON 鏂囦欢涓婁紶锛岄槻姝㈢敤鎴疯鐐?
-          alert("鏂囦欢鏍煎紡涓嶅尮閰嶃€傝纭繚杩欐槸鎮ㄤ箣鍓嶅鍑虹殑澶囦唤鏂囦欢锛堝寘鍚?progress 鍜?customBooks锛夈€傚鏋滄槸鏂扮殑璇嶅簱鏂囦欢锛岃鍦ㄤ笂鏂广€愭墿鍏呰瘝姹囧簱銆戝尯鍩熶笂浼犮€?);
+          alert('Invalid backup file format. Please import a valid exported backup JSON.');
         }
       } catch (err) {
-        alert("璇诲彇鏂囦欢澶辫触锛屽彲鑳戒笉鏄悎娉曠殑 JSON 鏂囦欢锛? + err.message);
+        alert('Failed to read the file: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -1654,11 +1654,11 @@ export default function VocabularyMaster() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-900">鎴戠殑璇嶄功</p>
-                <p className="text-xs text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔?/p>
+                <p className="text-xs text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔</p>
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">鍏堝仛浠婂ぉ鐨勪换鍔★紝鍐嶅喅瀹氬鍝竴鏈€?/h1>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">鍏堝仛浠婂ぉ鐨勪换鍔★紝鍐嶅喅瀹氬鍝竴鏈€</h1>
               <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
                 棣栭〉鐜板湪鍙繚鐣欎綘鑷繁閫夋嫨鐨勮瘝涔︺€傛墍鏈夊彲閫夎瘝涔︺€佸鍏ュ叆鍙ｅ拰 AI 涓婚璇嶄功閮芥斁鍦ㄨ瘝涔﹀簱閲岀粺涓€绠＄悊銆?              </p>
             </div>
@@ -1683,20 +1683,20 @@ export default function VocabularyMaster() {
                 浠婃棩浠诲姟
               </div>
               <div>
-                <h3 className="text-3xl font-black tracking-tight sm:text-4xl">鍏堝鐞嗘垜鐨勮瘝涔︼紝鍐嶄粠璇嶄功搴撴墿灞曟柊涓婚銆?/h3>
+                <h3 className="text-3xl font-black tracking-tight sm:text-4xl">鍏堝鐞嗘垜鐨勮瘝涔︼紝鍐嶄粠璇嶄功搴撴墿灞曟柊涓婚銆</h3>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-emerald-50/90 sm:text-base">
                   Smart Review 鍙細璇诲彇銆屾垜鐨勮瘝涔︺€嶉噷鐨勫埌鏈熻瘝鏉°€傚仛瀹屽涔犲悗锛屼綘鍙互闅忔椂鍘昏瘝涔﹀簱鎶婃柊鐨勮瘝涔﹀姞鍏ラ椤点€?                </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">寰呭涔?/p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">寰呭涔</p>
                   <p className="mt-3 text-4xl font-black">{dueWordsCount}</p>
                   <p className="mt-2 text-sm text-emerald-50/80">鏉ヨ嚜鎴戠殑璇嶄功</p>
                 </div>
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">鏂拌瘝鐩爣</p>
                   <p className="mt-3 text-4xl font-black">{dailyNewTarget}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">鎸夊綋鍓嶈瘝涔︿及绠?/p>
+                  <p className="mt-2 text-sm text-emerald-50/80">鎸夊綋鍓嶈瘝涔︿及绠</p>
                 </div>
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">棰勮鑰楁椂</p>
@@ -1709,7 +1709,7 @@ export default function VocabularyMaster() {
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">浠诲姟鎽樿</p>
-                  <p className="mt-2 text-xl font-bold">棣栭〉鍙繚鐣欎綘鐪熸瑕佸鐨勮瘝涔︺€?/p>
+                  <p className="mt-2 text-xl font-bold">棣栭〉鍙繚鐣欎綘鐪熸瑕佸鐨勮瘝涔︺€</p>
                 </div>
                 <CalendarClock className="h-9 w-9 text-emerald-50/85" />
               </div>
@@ -1723,7 +1723,7 @@ export default function VocabularyMaster() {
                   <span className="font-bold text-white">{totalWords}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>宸叉帉鎻¤瘝鏁?/span>
+                  <span>宸叉帉鎻¤瘝鏁</span>
                   <span className="font-bold text-white">{totalLearned}</span>
                 </div>
               </div>
@@ -1733,7 +1733,7 @@ export default function VocabularyMaster() {
                   disabled={dueWordsCount === 0 || isPreparingReview}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-emerald-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isPreparingReview ? '姝ｅ湪鍑嗗澶嶄範渚嬪彞' : dueWordsCount > 0 ? '寮€濮嬩粖鏃ュ涔? : '鎴戠殑璇嶄功鏆傛棤鍒版湡澶嶄範'}
+                  {isPreparingReview ? 'Preparing review examples' : dueWordsCount > 0 ? "Start today's review" : 'No due review cards in my books'}
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
@@ -1763,7 +1763,7 @@ export default function VocabularyMaster() {
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">瀛︿範瀹屾垚鐜?/p>
+                <p className="text-sm font-medium text-slate-500">瀛︿範瀹屾垚鐜</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{totalWords ? Math.round((totalLearned / totalWords) * 100) : 0}%</p>
               </div>
             </div>
@@ -1774,7 +1774,7 @@ export default function VocabularyMaster() {
                 <Flame className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">褰撳ぉ鍙涔犺瘝鏁?/p>
+                <p className="text-sm font-medium text-slate-500">褰撳ぉ鍙涔犺瘝鏁</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{dueWordsCount}</p>
               </div>
             </div>
@@ -1795,7 +1795,7 @@ export default function VocabularyMaster() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-slate-950">鎴戠殑璇嶄功</h2>
-            <p className="mt-1 text-sm text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔︼紝鎸夋坊鍔犻『搴忔帓鍒椼€?/p>
+            <p className="mt-1 text-sm text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔︼紝鎸夋坊鍔犻『搴忔帓鍒椼€</p>
           </div>
           <button
             onClick={() => setView('library')}
@@ -1854,7 +1854,7 @@ export default function VocabularyMaster() {
                       {getBookCategory(book)}
                     </div>
                     <h3 className="pr-6 text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
-                    <p className="mt-2 text-sm text-slate-500">宸插涔?{learnedCount} / {bookWordCount} 璇嶏紝鐐瑰嚮鍗冲彲缁х画銆?/p>
+                    <p className="mt-2 text-sm text-slate-500">宸插涔?{learnedCount} / {bookWordCount} 璇嶏紝鐐瑰嚮鍗冲彲缁х画銆</p>
                   </div>
                   <div className="relative z-10 mt-5 rounded-2xl bg-slate-50/90 p-4 ring-1 ring-slate-100">
                     <p className="text-xs leading-6 text-slate-500">
@@ -1865,7 +1865,7 @@ export default function VocabularyMaster() {
                   </div>
                   <div className="relative z-10 mt-auto w-full pt-6">
                     <div className="mb-3 flex justify-between text-sm text-slate-500">
-                      <span className="font-medium">鎬诲涔犺繘搴?/span>
+                      <span className="font-medium">鎬诲涔犺繘搴</span>
                       <span>{progressPercent}%</span>
                     </div>
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -1998,12 +1998,12 @@ export default function VocabularyMaster() {
                 <Book className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">璇嶄功搴?/p>
+                <p className="text-sm font-semibold text-slate-900">璇嶄功搴</p>
                 <p className="text-xs text-slate-500">鎵€鏈夊彲鐢ㄨ瘝涔﹂兘鍦ㄨ繖閲岀粺涓€绠＄悊</p>
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">浠庤瘝涔﹀簱閫夋嫨锛屽啀鍔犲叆棣栭〉銆?/h1>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">浠庤瘝涔﹀簱閫夋嫨锛屽啀鍔犲叆棣栭〉銆</h1>
               <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
                 鎼滅储銆佺瓫閫夊苟鎸戦€変綘鐪熸瑕佸鐨勮瘝涔︺€傚姞鍏ュ悗锛岄椤典細绔嬪嵆鍚屾鏄剧ず銆?              </p>
             </div>
@@ -2025,7 +2025,7 @@ export default function VocabularyMaster() {
                 type="text"
                 value={librarySearch}
                 onChange={(e) => setLibrarySearch(e.target.value)}
-                placeholder="鎼滅储璇嶄功鍚嶇О銆佸垎绫绘垨绠€浠?
+                placeholder="Search books by name, category, or description"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
               />
             </div>
@@ -2093,8 +2093,8 @@ export default function VocabularyMaster() {
           {filteredBooks.length === 0 && (
             <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
               <Search className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-              <h3 className="text-xl font-black text-slate-800">娌℃湁鎵惧埌绗﹀悎鏉′欢鐨勮瘝涔?/h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">璇曡瘯璋冩暣鎼滅储璇嶆垨鍒囨崲鍒嗙被绛涢€夛紝涔熷彲浠ヤ笂浼犺嚜宸辩殑鏈湴璇嶄功銆?/p>
+              <h3 className="text-xl font-black text-slate-800">娌℃湁鎵惧埌绗﹀悎鏉′欢鐨勮瘝涔</h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">璇曡瘯璋冩暣鎼滅储璇嶆垨鍒囨崲鍒嗙被绛涢€夛紝涔熷彲浠ヤ笂浼犺嚜宸辩殑鏈湴璇嶄功銆</p>
             </div>
           )}
         </div>
@@ -2228,7 +2228,7 @@ export default function VocabularyMaster() {
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-indigo-600 ring-1 ring-slate-200">
                 <GraduationCap className="h-4 w-4" />
                 瀛︿範涓?              </div>
-              <div className="text-sm font-medium text-slate-400">鍓╀綑 {remainingUnique} 璇?/div>
+              <div className="text-sm font-medium text-slate-400">鍓╀綑 {remainingUnique} 璇</div>
             </div>
 
             <div className="flex min-h-[620px] flex-col justify-between p-8 sm:p-12">
@@ -2334,18 +2334,18 @@ export default function VocabularyMaster() {
             <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">鏈浠诲姟</p>
               <p className="mt-3 text-4xl font-black text-slate-950">{currentProgress}</p>
-              <p className="mt-2 text-sm text-slate-500">褰撳墠杩涜鍒扮 {currentProgress} 涓瘝锛岄槦鍒楁€婚噺 {totalUnique}銆?/p>
+              <p className="mt-2 text-sm text-slate-500">褰撳墠杩涜鍒扮 {currentProgress} 涓瘝锛岄槦鍒楁€婚噺 {totalUnique}銆</p>
             </div>
             <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">闃舵璇存槑</p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <p><span className="font-semibold text-slate-900">1.</span> 鍏堝彧鐪嬪崟璇嶅拰闊虫爣锛屽厛鍚彂闊筹紝涓嶅睍绀洪噴涔夊拰渚嬪彞銆?/p>
-                <p><span className="font-semibold text-slate-900">2.</span> 鍐嶅睍寮€閲婁箟鍜屼緥鍙ワ紝瀹屾垚璁板繂杈撳叆銆?/p>
-                <p><span className="font-semibold text-slate-900">3.</span> 鏈€鍚庡啀鍋氫竴娆¤嚜鎴戝垽鏂紝涓嶄細閫€鍥炲惉闊筹紝妯＄硦閫€鍥炶蹇嗭紝鎺屾彙杩涘叆涓嬩竴璇嶃€?/p>
+                <p><span className="font-semibold text-slate-900">1.</span> 鍏堝彧鐪嬪崟璇嶅拰闊虫爣锛屽厛鍚彂闊筹紝涓嶅睍绀洪噴涔夊拰渚嬪彞銆</p>
+                <p><span className="font-semibold text-slate-900">2.</span> 鍐嶅睍寮€閲婁箟鍜屼緥鍙ワ紝瀹屾垚璁板繂杈撳叆銆</p>
+                <p><span className="font-semibold text-slate-900">3.</span> 鏈€鍚庡啀鍋氫竴娆¤嚜鎴戝垽鏂紝涓嶄細閫€鍥炲惉闊筹紝妯＄硦閫€鍥炶蹇嗭紝鎺屾彙杩涘叆涓嬩竴璇嶃€</p>
               </div>
             </div>
             <div className="rounded-[1.8rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">褰撳墠璇嶇姸鎬?/p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">褰撳墠璇嶇姸鎬</p>
               <p className="mt-3 text-2xl font-black">{word.word}</p>
               {!isStage1 && <p className="mt-2 text-sm text-slate-300">{word.meaning}</p>}
               {word.phonetic && (
@@ -2483,7 +2483,7 @@ export default function VocabularyMaster() {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck="false"
-                aria-label="鎷煎啓杈撳叆妗?
+                aria-label="Spelling input"
               />
               <p className="mt-4 text-center text-sm text-slate-400">
                 姣忔潯妯嚎浠ｈ〃涓€涓瓧姣嶏紝杈撻敊鐨勪綅缃細鏍囩孩
@@ -2597,7 +2597,7 @@ export default function VocabularyMaster() {
           >
             <div className="mb-4">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">鐩爣涓枃鍙ユ剰</span>
-              <p className="mt-2 text-sm text-slate-500">涓嬫柟姣忔潯妯嚎瀵瑰簲涓€涓嫳鏂囧崟璇嶏紝鐐瑰嚮鍚庣洿鎺ヨ緭鍏ユ暣鍙ュ嵆鍙€?/p>
+              <p className="mt-2 text-sm text-slate-500">涓嬫柟姣忔潯妯嚎瀵瑰簲涓€涓嫳鏂囧崟璇嶏紝鐐瑰嚮鍚庣洿鎺ヨ緭鍏ユ暣鍙ュ嵆鍙€</p>
             </div>
             <textarea
               ref={sentenceInputRef}
@@ -2653,7 +2653,7 @@ export default function VocabularyMaster() {
               disabled={!sentenceInput.trim()}
               className={`flex-1 py-4 font-bold rounded-2xl flex items-center justify-center transition-all ${sentenceInput.trim() ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
             >
-              {isFullyCorrect ? '瀹屽叏姝ｇ‘锛屼笅涓€涓? : sentenceSubmitted ? '缁х画淇敼鍙ュ瓙' : '鎻愪氦鍙ュ瓙'}
+              {isFullyCorrect ? 'All correct, next one' : sentenceSubmitted ? 'Keep editing the sentence' : 'Submit sentence'}
               {isFullyCorrect && <ArrowRight className="ml-2 w-5 h-5" />}
             </button>
           </div>
@@ -2662,7 +2662,7 @@ export default function VocabularyMaster() {
               鍙ュ瓙杩樻病鏈夊畬鍏ㄦ嫾瀵癸紝淇敼鍚庡啀鎻愪氦銆傚彧鏈夋彁浜ゅ悗鎵嶄細鏍囧嚭閿欒浣嶇疆銆?            </p>
           )}
           {usedHint && !isFullyCorrect && (
-            <p className="mt-4 text-sm text-amber-500 text-center animate-in fade-in">浣跨敤鎻愮ず鍚庯紝璇ュ彞瀛愬皢鍦ㄩ槦灏鹃噸鏂板惊鐜?/p>
+            <p className="mt-4 text-sm text-amber-500 text-center animate-in fade-in">浣跨敤鎻愮ず鍚庯紝璇ュ彞瀛愬皢鍦ㄩ槦灏鹃噸鏂板惊鐜</p>
           )}
         </div>
       </div>
@@ -2674,11 +2674,11 @@ export default function VocabularyMaster() {
       <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
         <Check className="w-12 h-12" />
       </div>
-      <h2 className="text-3xl font-black text-slate-800">浠诲姟鍦嗘弧瀹屾垚锛?/h2>
+      <h2 className="text-3xl font-black text-slate-800">Session complete</h2>
       <p className="text-slate-500 text-lg leading-relaxed">
         {sessionType === 'smart_review' 
-          ? "鎭枩锛佷粖鏃ョ殑鏅鸿兘澶嶄範鍗＄墖宸插叏閮ㄦ竻绌猴紝鎮ㄧ殑璁板繂閾炬帴鍙樺緱鏇寸墷鍥轰簡銆? 
-          : "鏈疆瀛︿範鍗＄墖宸插叏閮ㄨ繃瀹岋紝澶ц剳闇€瑕佷紤鎭潵宸╁浐绁炵粡閾炬帴銆?}
+          ? "Great job. Today's smart review cards are all cleared."
+          : 'This learning batch is complete. Take a short break before the next round.'}
       </p>
       <div className="pt-6">
         <button
@@ -2821,6 +2821,7 @@ export default function VocabularyMaster() {
     </div>
   );
 }
+
 
 
 
