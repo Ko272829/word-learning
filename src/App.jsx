@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight, Search, LogIn, LogOut, UserRound, UserPlus } from 'lucide-react';
 import cet4Raw from './data/cet4.txt?raw';
 import cet6Raw from './data/cet6.txt?raw';
 
-// --- 解析工具 (支持解析 KyleBing 仓库的 txt 和一般 json) ---
+// --- 瑙ｆ瀽宸ュ叿 (鏀寔瑙ｆ瀽 KyleBing 浠撳簱鐨?txt 鍜屼竴鑸?json) ---
 const parseTxt = (text, bookId, bookName) => {
   const lines = text.split('\n');
   const words = [];
@@ -46,7 +46,7 @@ const parseTxt = (text, bookId, bookName) => {
 };
 
 const parseJson = (jsonData, bookId, bookName) => {
-  if (!Array.isArray(jsonData)) throw new Error("JSON 格式错误: 需要数组");
+  if (!Array.isArray(jsonData)) throw new Error("JSON 鏍煎紡閿欒: 闇€瑕佹暟缁?);
   const words = jsonData.map((item, index) => {
     const word = item.word || item.name || Object.keys(item)[0] || "unknown";
     let meaning = item.meaning || item.trans || "";
@@ -70,7 +70,7 @@ const parseJson = (jsonData, bookId, bookName) => {
 
 const SAME_DAY_REVIEW_DELAY_MS = 0;
 
-// --- SRS 核心算法 (SuperMemo-2) ---
+// --- SRS 鏍稿績绠楁硶 (SuperMemo-2) ---
 const calculateSM2 = (grade, repetition, interval, easeFactor) => {
   let newRepetition = repetition;
   let newInterval = interval;
@@ -103,11 +103,11 @@ const calculateSM2 = (grade, repetition, interval, easeFactor) => {
     repetition: newRepetition,
     interval: newInterval,
     easeFactor: newEaseFactor,
-    nextReview: Date.now() + nextReviewDelay // 未来的时间戳
+    nextReview: Date.now() + nextReviewDelay // 鏈潵鐨勬椂闂存埑
   };
 };
 
-// 辅助函数：生成单选题选项 (包含词性)
+// 杈呭姪鍑芥暟锛氱敓鎴愬崟閫夐閫夐」 (鍖呭惈璇嶆€?
 const generateMCOptions = (correctWord, allBooks) => {
   const allOptions = [];
   const correctFormatted = `${correctWord.pos ? correctWord.pos + ' ' : ''}${correctWord.meaning}`;
@@ -125,15 +125,15 @@ const generateMCOptions = (correctWord, allBooks) => {
   const wrongOptions = uniqueOptions.slice(0, 3);
   
   while (wrongOptions.length < 3) {
-    wrongOptions.push(`干扰选项 ${Math.random().toString(36).substring(7)}`);
+    wrongOptions.push(`骞叉壈閫夐」 ${Math.random().toString(36).substring(7)}`);
   }
   
   return [correctFormatted, ...wrongOptions].sort(() => 0.5 - Math.random());
 };
 
 const BUILT_IN_BOOKS = {
-  kb_cet4: parseTxt(cet4Raw, 'kb_cet4', '四级核心'),
-  kb_cet6: parseTxt(cet6Raw, 'kb_cet6', '六级进阶')
+  kb_cet4: parseTxt(cet4Raw, 'kb_cet4', '鍥涚骇鏍稿績'),
+  kb_cet6: parseTxt(cet6Raw, 'kb_cet6', '鍏骇杩涢樁')
 };
 
 const splitBookIntoChunks = (book, chunkSize = 2000) => {
@@ -150,7 +150,7 @@ const splitBookIntoChunks = (book, chunkSize = 2000) => {
         `${book.id}_part_${chunkNumber}`,
         {
           id: `${book.id}_part_${chunkNumber}`,
-          name: `${book.name} ${chunkNumber}册`,
+          name: `${book.name} ${chunkNumber}鍐宍,
           words: chunkWords.map((word) => ({
             ...word,
             bookId: `${book.id}_part_${chunkNumber}`,
@@ -177,38 +177,75 @@ const LEARNING_PAGE_DEMO_WORDS = [
     id: 'demo_0',
     bookId: 'demo_book',
     word: 'paradox',
-    phonetic: '/ˈpærədɒks/',
+    phonetic: '/藞p忙r蓹d蓲ks/',
     pos: 'n.',
-    meaning: '悖论；自相矛盾',
+    meaning: '鎮栬锛涜嚜鐩哥煕鐩?,
     exampleEn: 'It sounds like a paradox, but both ideas are true.',
-    exampleZh: '这听起来像个悖论，但两个观点都成立。'
+    exampleZh: '杩欏惉璧锋潵鍍忎釜鎮栬锛屼絾涓や釜瑙傜偣閮芥垚绔嬨€?
   },
   {
     id: 'demo_1',
     bookId: 'demo_book',
     word: 'access',
-    phonetic: '/ˈækses/',
+    phonetic: '/藞忙kses/',
     pos: 'n.',
-    meaning: '入口；使用权',
+    meaning: '鍏ュ彛锛涗娇鐢ㄦ潈',
     exampleEn: 'Students have access to the lab after class.',
-    exampleZh: '学生下课后可以使用实验室。'
+    exampleZh: '瀛︾敓涓嬭鍚庡彲浠ヤ娇鐢ㄥ疄楠屽銆?
   },
   {
     id: 'demo_2',
     bookId: 'demo_book',
     word: 'generous',
-    phonetic: '/ˈdʒenərəs/',
+    phonetic: '/藞d蕭en蓹r蓹s/',
     pos: 'adj.',
-    meaning: '慷慨的；大方的',
+    meaning: '鎱锋叏鐨勶紱澶ф柟鐨?,
     exampleEn: 'She was generous enough to share her notes.',
-    exampleZh: '她很大方，把自己的笔记分享了出来。'
+    exampleZh: '濂瑰緢澶ф柟锛屾妸鑷繁鐨勭瑪璁板垎浜簡鍑烘潵銆?
   }
 ];
 const normalizeTopicKey = (topic) => topic.trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeBookName = (name) => String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const normalizeExampleKey = (word, meaning) =>
   `${String(word || '').trim().toLowerCase()}__${String(meaning || '').trim()}`;
+const tokenizeTopic = (topic) =>
+  String(topic || '')
+    .toLowerCase()
+    .match(/[a-z0-9\u4e00-\u9fa5]+/g) || [];
+const BOOK_LIBRARY_FILTERS = ['鍏ㄩ儴', '鍥涚骇', '鍏骇', '鑰冪爺', '鍏朵粬'];
 
+const getBookCategory = (book) => {
+  const name = String(book?.name || '').toLowerCase();
+  if (name.includes('鍥涚骇') || name.includes('cet4')) return '鍥涚骇';
+  if (name.includes('鍏骇') || name.includes('cet6')) return '鍏骇';
+  if (name.includes('鑰冪爺') || name.includes('netem')) return '鑰冪爺';
+  return '鍏朵粬';
+};
+
+const getBookDescription = (book) => {
+  if (book?.aiTopicKey) return '鏍规嵁涓婚浠庣幇鏈夎瘝搴撲腑绛涢€夌敓鎴愶紝閫傚悎蹇€熷缓绔嬩笓棰樿瘝姹囨竻鍗曘€?;
+  const category = getBookCategory(book);
+  if (category === '鍥涚骇') return '瑕嗙洊鍥涚骇鏍稿績璇嶆眹锛岄€傚悎鏃ュ父鑳岃瘝涓庡熀纭€澶嶄範銆?;
+  if (category === '鍏骇') return '瑕嗙洊鍏骇楂橀涓庤繘闃惰瘝姹囷紝閫傚悎鎻愬崌闃呰涓庡啓浣滆瘝姹囬噺銆?;
+  if (category === '鑰冪爺') return '瑕嗙洊鑰冪爺鑻辫鏍稿績璇嶆眹锛岄€傚悎闀垮懆鏈熺郴缁熷涔犮€?;
+  return '鍙姞鍏ラ椤碉紝浣滀负浣犵殑涓汉瀛︿範璇嶄功鎸佺画璺熻繘銆?;
+};
+
+const VIEW_PATHS = {
+  home: '/',
+  library: '/library',
+  login: '/login',
+  register: '/register'
+};
+
+const getInitialViewFromPath = () => {
+  if (typeof window === 'undefined') return 'home';
+  const pathname = window.location.pathname || '/';
+  if (pathname === '/library') return 'library';
+  if (pathname === '/login') return 'login';
+  if (pathname === '/register') return 'register';
+  return 'home';
+};
 const safeReadStorageJson = (key, fallbackValue) => {
   if (typeof window === 'undefined') return fallbackValue;
 
@@ -266,34 +303,47 @@ const mergeBookWords = (existingWords, incomingWords, bookId) => {
 };
 
 const findExistingAiBook = (books, topicKey, topic) => {
-  const expectedName = normalizeBookName(`${topic}词书`);
+  const expectedName = normalizeBookName(`${topic}璇嶄功`);
   return Object.values(books).find(
     (item) => item.aiTopicKey === topicKey || normalizeBookName(item.name) === expectedName
   );
 };
 
 export default function VocabularyMaster() {
-  const [view, setView] = useState('home'); 
-  const [sessionType, setSessionType] = useState('normal'); // 'normal' 或 'smart_review'
+  const [view, setView] = useState(getInitialViewFromPath); 
+  const [sessionType, setSessionType] = useState('normal'); // 'normal' 鎴?'smart_review'
   const [selectedBook, setSelectedBook] = useState(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [isPreparingReview, setIsPreparingReview] = useState(false);
   const [exampleGenerationState, setExampleGenerationState] = useState({ bookId: null, completed: 0, total: 0 });
+  const [librarySearch, setLibrarySearch] = useState('');
+  const [libraryFilter, setLibraryFilter] = useState('鍏ㄩ儴');
   
-  // 1. 本地存储：复习进度持久化
+  // 1. 鏈湴瀛樺偍锛氬涔犺繘搴︽寔涔呭寲
   const [userProgress, setUserProgress] = useState(() =>
     safeReadStorageJson('vocab_master_progress', {})
   );
 
-  // 2. 本地存储：导入的自定义词库持久化
+  // 2. 鏈湴瀛樺偍锛氬鍏ョ殑鑷畾涔夎瘝搴撴寔涔呭寲
   const [customBooks, setCustomBooks] = useState(() =>
     safeReadStorageJson('vocab_master_custom_books', {})
   );
   const [hiddenBookIds, setHiddenBookIds] = useState(() =>
     safeReadStorageJson('vocab_master_hidden_books', [])
   );
+  const [selectedBookIds, setSelectedBookIds] = useState(() =>
+    safeReadStorageJson('vocab_master_selected_books', [])
+  );
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [favorites, setFavorites] = useState([]);
+  const [userSettings, setUserSettings] = useState({});
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ email: '', password: '', username: '' });
 
   useEffect(() => {
     safeWriteStorageJson('vocab_master_progress', userProgress);
@@ -303,14 +353,80 @@ export default function VocabularyMaster() {
     safeWriteStorageJson('vocab_master_hidden_books', hiddenBookIds);
   }, [hiddenBookIds]);
 
-  const ALL_BOOKS = Object.fromEntries(
-    Object.entries({ ...CHUNKED_BUILT_IN_BOOKS, ...customBooks }).filter(([bookId, book]) => {
-      if (hiddenBookIds.includes(bookId)) return false;
-      if (book?.sourceBookId && hiddenBookIds.includes(book.sourceBookId)) return false;
-      return true;
-    })
+  useEffect(() => {
+    safeWriteStorageJson('vocab_master_selected_books', selectedBookIds);
+  }, [selectedBookIds]);
+
+  const ALL_BOOKS = { ...CHUNKED_BUILT_IN_BOOKS, ...customBooks };
+  const ALL_BOOK_LIST = Object.values(ALL_BOOKS);
+  const WORD_META_MAP = Object.fromEntries(
+    ALL_BOOK_LIST.flatMap((book) =>
+      book.words.map((word) => [
+        word.id,
+        {
+          bookId: word.bookId || book.id,
+          sourceBookId: word.sourceBookId || book.sourceBookId || book.id,
+          word
+        }
+      ])
+    )
   );
   const isBuiltInBook = (bookId) => Boolean(CHUNKED_BUILT_IN_BOOKS[bookId]);
+  const MY_BOOKS = selectedBookIds
+    .map((bookId) => ALL_BOOKS[bookId])
+    .filter(Boolean);
+  const MY_BOOKS_MAP = Object.fromEntries(MY_BOOKS.map((book) => [book.id, book]));
+
+  useEffect(() => {
+    setSelectedBookIds((prev) => prev.filter((bookId) => Boolean(ALL_BOOKS[bookId])));
+  }, [customBooks]);
+
+  const apiFetchJson = async (url, options = {}) => {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+
+    const rawText = await response.text();
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      data = { error: rawText || `Request failed (${response.status})` };
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed (${response.status})`);
+    }
+
+    return data;
+  };
+
+  const buildProgressPayloadItem = (wordId, progress) => {
+    const meta = WORD_META_MAP[wordId];
+    if (!meta) return null;
+
+    const nextReviewTimestamp =
+      typeof progress?.nextReview === 'number'
+        ? progress.nextReview
+        : progress?.nextReviewAt
+          ? Date.parse(progress.nextReviewAt)
+          : null;
+
+    return {
+      id: `${meta.bookId}:${wordId}`,
+      bookId: meta.bookId,
+      wordId,
+      status: progress?.status || '',
+      lastReviewedAt: progress?.lastReviewedAt || null,
+      nextReviewAt: nextReviewTimestamp ? new Date(nextReviewTimestamp).toISOString() : null,
+      progress
+    };
+  };
 
   const addCustomBook = (book) => {
     setCustomBooks(prev => {
@@ -319,6 +435,47 @@ export default function VocabularyMaster() {
       return next;
     });
     setHiddenBookIds(prev => prev.filter(id => id !== book.id));
+    setSelectedBookIds(prev => (prev.includes(book.id) ? prev : [...prev, book.id]));
+    if (authUser) {
+      apiFetchJson('/api/user/books', {
+        method: 'POST',
+        body: JSON.stringify({ bookId: book.id })
+      }).catch((error) => console.warn('Failed to persist custom book selection', error));
+    }
+  };
+
+  const addBookToHome = (bookId) => {
+    setSelectedBookIds((prev) => (prev.includes(bookId) ? prev : [...prev, bookId]));
+    if (authUser) {
+      apiFetchJson('/api/user/books', {
+        method: 'POST',
+        body: JSON.stringify({ bookId })
+      }).catch((error) => console.warn('Failed to persist selected books', error));
+    }
+  };
+
+  const removeBookFromHome = (bookId) => {
+    setSelectedBookIds((prev) => prev.filter((id) => id !== bookId));
+    if (selectedBook === bookId) {
+      setSelectedBook(null);
+      if (!['home', 'library'].includes(view)) {
+        setView('home');
+      }
+    }
+    if (authUser) {
+      apiFetchJson(`/api/user/books/${encodeURIComponent(bookId)}`, {
+        method: 'DELETE',
+        headers: {}
+      }).catch((error) => console.warn('Failed to remove selected book from D1', error));
+    }
+  };
+
+  const toggleBookSelection = (bookId) => {
+    if (selectedBookIds.includes(bookId)) {
+      removeBookFromHome(bookId);
+      return;
+    }
+    addBookToHome(bookId);
   };
 
   const addOrMergeAiBook = (book, topic) => {
@@ -335,14 +492,14 @@ export default function VocabularyMaster() {
         mergedIntoExisting = true;
         next[existingBook.id] = {
           ...existingBook,
-          name: `${topic}词书`,
+          name: `${topic}璇嶄功`,
           aiTopicKey: topicKey,
           words: mergeBookWords(existingBook.words, book.words, existingBook.id)
         };
       } else {
         next[book.id] = {
           ...book,
-          name: `${topic}词书`,
+          name: `${topic}璇嶄功`,
           aiTopicKey: topicKey
         };
       }
@@ -352,6 +509,13 @@ export default function VocabularyMaster() {
     });
 
     setHiddenBookIds(prev => prev.filter(id => id !== targetBookId));
+    setSelectedBookIds(prev => (prev.includes(targetBookId) ? prev : [...prev, targetBookId]));
+    if (authUser) {
+      apiFetchJson('/api/user/books', {
+        method: 'POST',
+        body: JSON.stringify({ bookId: targetBookId })
+      }).catch((error) => console.warn('Failed to persist AI book selection', error));
+    }
     return mergedIntoExisting;
   };
 
@@ -391,7 +555,7 @@ export default function VocabularyMaster() {
         });
       } catch (error) {
         if (error?.name === 'AbortError') {
-          throw new Error('补例句请求超时，请稍后重试。');
+          throw new Error('琛ヤ緥鍙ヨ姹傝秴鏃讹紝璇风◢鍚庨噸璇曘€?);
         }
         throw error;
       }
@@ -401,11 +565,11 @@ export default function VocabularyMaster() {
       try {
         data = rawText ? JSON.parse(rawText) : {};
       } catch {
-        data = { error: `服务端返回了非 JSON 响应：${rawText.slice(0, 180)}` };
+        data = { error: `鏈嶅姟绔繑鍥炰簡闈?JSON 鍝嶅簲锛?{rawText.slice(0, 180)}` };
       }
 
       if (!res.ok) {
-        throw new Error(data.error || `补例句失败（HTTP ${res.status}）`);
+        throw new Error(data.error || `琛ヤ緥鍙ュけ璐ワ紙HTTP ${res.status}锛塦);
       }
 
       const examplesMap = new Map(
@@ -437,7 +601,7 @@ export default function VocabularyMaster() {
     }
 
     if (showCompletionAlert) {
-      alert(`《${book.name}》例句补充完成，现在可以进行拼写句子练习了。`);
+      alert(`銆?{book.name}銆嬩緥鍙ヨˉ鍏呭畬鎴愶紝鐜板湪鍙互杩涜鎷煎啓鍙ュ瓙缁冧範浜嗐€俙);
     }
 
     return workingBook;
@@ -452,7 +616,7 @@ export default function VocabularyMaster() {
   const activeLearningQueue = queue.length ? queue : LEARNING_PAGE_DEMO_WORDS;
   
   // 3-Stage Learning State
-  const [learnStage, setLearnStage] = useState(1); // 1:展示, 2:测验, 3:巩固
+  const [learnStage, setLearnStage] = useState(1); // 1:灞曠ず, 2:娴嬮獙, 3:宸╁浐
   const [mcOptions, setMcOptions] = useState([]);
   const [mcFeedback, setMcFeedback] = useState(null);
 
@@ -476,6 +640,12 @@ export default function VocabularyMaster() {
   const sentenceInputRef = useRef(null);
   const voicesRef = useRef([]);
   const audioRef = useRef(null);
+  const isRemoteHydratingRef = useRef(false);
+  const guestSnapshotRef = useRef({
+    userProgress,
+    hiddenBookIds,
+    selectedBookIds
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
@@ -499,6 +669,192 @@ export default function VocabularyMaster() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!authUser) {
+      guestSnapshotRef.current = {
+        userProgress,
+        hiddenBookIds,
+        selectedBookIds
+      };
+    }
+  }, [authUser, userProgress, hiddenBookIds, selectedBookIds]);
+
+  const loadRemoteUserData = async () => {
+    isRemoteHydratingRef.current = true;
+    try {
+      const [booksData, progressData, favoritesData, settingsData] = await Promise.all([
+        apiFetchJson('/api/user/books'),
+        apiFetchJson('/api/user/progress'),
+        apiFetchJson('/api/user/favorites'),
+        apiFetchJson('/api/user/settings')
+      ]);
+
+      setSelectedBookIds(
+        Array.isArray(booksData.bookIds)
+          ? booksData.bookIds.filter((bookId) => Boolean(ALL_BOOKS[bookId]))
+          : []
+      );
+      setUserProgress(progressData.progressMap || {});
+      setFavorites(Array.isArray(favoritesData.items) ? favoritesData.items : []);
+      setUserSettings(settingsData.settings || {});
+      setHiddenBookIds(Array.isArray(settingsData.settings?.hiddenBookIds) ? settingsData.settings.hiddenBookIds : []);
+    } finally {
+      isRemoteHydratingRef.current = false;
+    }
+  };
+
+  const migrateLocalDataToD1 = async () => {
+    try {
+      if (selectedBookIds.length > 0) {
+        await apiFetchJson('/api/user/books', {
+          method: 'POST',
+          body: JSON.stringify({ bookIds: selectedBookIds })
+        });
+      }
+
+      const progressItems = Object.entries(userProgress)
+        .map(([wordId, progress]) => buildProgressPayloadItem(wordId, progress))
+        .filter(Boolean);
+
+      if (progressItems.length > 0) {
+        await apiFetchJson('/api/user/progress', {
+          method: 'POST',
+          body: JSON.stringify({ items: progressItems })
+        });
+      }
+
+      await apiFetchJson('/api/user/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          settings: {
+            hiddenBookIds
+          }
+        })
+      });
+    } catch (error) {
+      console.warn('Failed to migrate local data to D1', error);
+    }
+  };
+
+  const restoreGuestSnapshot = () => {
+    const snapshot = guestSnapshotRef.current;
+    setUserProgress(snapshot.userProgress || {});
+    setHiddenBookIds(snapshot.hiddenBookIds || []);
+    setSelectedBookIds(snapshot.selectedBookIds || []);
+    setFavorites([]);
+    setUserSettings({});
+  };
+
+  const persistProgressToD1 = async (wordId, progress) => {
+    if (!authUser) return;
+
+    const item = buildProgressPayloadItem(wordId, progress);
+    if (!item) return;
+
+    try {
+      await apiFetchJson('/api/user/progress', {
+        method: 'POST',
+        body: JSON.stringify({ items: [item] })
+      });
+    } catch (error) {
+      console.warn('Failed to persist progress to D1', error);
+    }
+  };
+
+  const syncSettingsToD1 = async (settingsPatch) => {
+    if (!authUser || isRemoteHydratingRef.current) return;
+
+    try {
+      await apiFetchJson('/api/user/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ settings: settingsPatch })
+      });
+    } catch (error) {
+      console.warn('Failed to persist settings to D1', error);
+    }
+  };
+
+  const handleAuthSuccess = async (user) => {
+    setAuthUser(user);
+    setAuthError('');
+    await migrateLocalDataToD1();
+    await loadRemoteUserData();
+    setView('home');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiFetchJson('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.warn('Logout failed', error);
+    } finally {
+      setAuthUser(null);
+      restoreGuestSnapshot();
+      setView('home');
+    }
+  };
+
+    useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handlePopState = () => {
+      const pathname = window.location.pathname || '/';
+      if (pathname === '/library') setView('library');
+      else if (pathname === '/login') setView('login');
+      else if (pathname === '/register') setView('register');
+      else setView('home');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const nextPath = VIEW_PATHS[view];
+    if (!nextPath) return;
+    if (window.location.pathname !== nextPath) {
+      window.history.replaceState({}, '', nextPath);
+    }
+  }, [view]);
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapAuth = async () => {
+      try {
+        const data = await apiFetchJson('/api/auth/me', { headers: {} });
+        if (cancelled) return;
+        if (data.user) {
+          setAuthUser(data.user);
+          await loadRemoteUserData();
+        }
+      } catch (error) {
+        console.warn('Auth bootstrap failed', error);
+      } finally {
+        if (!cancelled) {
+          setAuthLoading(false);
+        }
+      }
+    };
+
+    bootstrapAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authUser) {
+      setUserSettings((prev) => ({
+        ...prev,
+        hiddenBookIds
+      }));
+      syncSettingsToD1({ hiddenBookIds });
+    }
+  }, [authUser, hiddenBookIds]);
 
   const speakText = (text, { allowUnlock = false } = {}) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window) || !text) return;
@@ -573,8 +929,7 @@ export default function VocabularyMaster() {
     if (view === 'sentence_practice' && sentenceInputRef.current) sentenceInputRef.current.focus();
   }, [view, currentSpellingIndex, spellingFeedback, currentSentenceIndex, showSentenceAnswer]);
 
-  // 自动播放学习阶段一的单词音频
-  useEffect(() => {
+  // 鑷姩鎾斁瀛︿範闃舵涓€鐨勫崟璇嶉煶棰?  useEffect(() => {
     if (view === 'learning' && learnStage === 1 && activeLearningQueue[currentWordIndex]) {
       playWordAudio(activeLearningQueue[currentWordIndex].word);
     }
@@ -596,9 +951,9 @@ export default function VocabularyMaster() {
         else parsedBook = parseTxt(content, bookId, bookName);
         
         addCustomBook(parsedBook);
-        alert(`🎉 导入成功！已添加词库：${bookName} (${parsedBook.words.length}词)`);
+        alert(`馃帀 瀵煎叆鎴愬姛锛佸凡娣诲姞璇嶅簱锛?{bookName} (${parsedBook.words.length}璇?`);
       } catch (err) {
-        alert("导入失败，文件格式有误: " + err.message);
+        alert("瀵煎叆澶辫触锛屾枃浠舵牸寮忔湁璇? " + err.message);
       }
     };
     reader.readAsText(file);
@@ -607,7 +962,7 @@ export default function VocabularyMaster() {
 
   const deleteBook = (e, bookId) => {
     e.stopPropagation();
-    if (confirm("确定要删除这个词库吗？相关的记忆进度虽然保留，但词库入口将移除。")) {
+    if (confirm("纭畾瑕佸垹闄よ繖涓瘝搴撳悧锛熺浉鍏崇殑璁板繂杩涘害铏界劧淇濈暀锛屼絾璇嶅簱鍏ュ彛灏嗙Щ闄ゃ€?)) {
       if (!isBuiltInBook(bookId) && customBooks[bookId]) {
         setCustomBooks(prev => {
           const next = {...prev};
@@ -626,7 +981,7 @@ export default function VocabularyMaster() {
     }
   };
 
-  // --- 获取到期复习的单词 ---
+  // --- 鑾峰彇鍒版湡澶嶄範鐨勫崟璇?---
   const getDueWords = () => {
     const now = Date.now();
     const dueWords = [];
@@ -644,11 +999,49 @@ export default function VocabularyMaster() {
     return dueWords.sort((a, b) => userProgress[a.id].nextReview - userProgress[b.id].nextReview);
   };
 
-  // --- 智能复习逻辑 ---
+  const getDueWordsForBooks = (books = ALL_BOOKS) => {
+    const now = Date.now();
+    const dueWords = [];
+    Object.values(books).forEach(book => {
+      book.words.forEach(w => {
+        if (userProgress[w.id] && userProgress[w.id].nextReview <= now) {
+          dueWords.push({
+            ...w,
+            bookId: w.bookId || book.id,
+            sourceBookId: w.sourceBookId || book.sourceBookId || book.id
+          });
+        }
+      });
+    });
+    return dueWords.sort((a, b) => userProgress[a.id].nextReview - userProgress[b.id].nextReview);
+  };
+
+  const handleRemoveOrDeleteBook = (e, bookId) => {
+    e.stopPropagation();
+    const isCustomBook = Boolean(customBooks[bookId]);
+    const confirmMessage = isCustomBook
+      ? "纭畾瑕佸垹闄よ繖鏈嚜瀹氫箟璇嶄功鍚楋紵鍒犻櫎鍚庝細鍚屾椂浠庤瘝涔﹀簱鍜岄椤电Щ闄ゃ€?
+      : "纭畾瑕佹妸杩欐湰璇嶄功浠庨椤电Щ闄ゅ悧锛熷畠浠嶇劧浼氫繚鐣欏湪璇嶄功搴撻噷銆?;
+
+    if (!confirm(confirmMessage)) return;
+
+    removeBookFromHome(bookId);
+
+    if (isCustomBook) {
+      setCustomBooks(prev => {
+        const next = { ...prev };
+        delete next[bookId];
+        safeWriteStorageJson('vocab_master_custom_books', next);
+        return next;
+      });
+    }
+  };
+
+  // --- 鏅鸿兘澶嶄範閫昏緫 ---
   const startSmartReview = () => {
     if (isPreparingReview) return;
 
-    const dueWords = getDueWords();
+    const dueWords = getDueWordsForBooks(MY_BOOKS_MAP);
     if (dueWords.length === 0) return;
 
     setSessionType('smart_review');
@@ -681,7 +1074,59 @@ export default function VocabularyMaster() {
     return [...sessionReviews, ...sessionNew];
   };
 
-  // --- 正常学习逻辑 ---
+  const buildAiCandidatePool = (topic, limit = 220) => {
+    const tokens = tokenizeTopic(topic).filter((token) => token.length > 1);
+    const seen = new Set();
+    const allCandidates = [];
+
+    Object.values(ALL_BOOKS)
+      .filter((book) => !book.aiTopicKey)
+      .forEach((book) => {
+        book.words.forEach((item) => {
+          const dedupeKey = `${String(item.word || '').trim().toLowerCase()}__${String(item.meaning || '').trim()}`;
+          if (!item.word || !item.meaning || seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+
+          const searchText = `${item.word} ${item.pos || ''} ${item.meaning}`.toLowerCase();
+          let score = 0;
+          tokens.forEach((token) => {
+            if (searchText.includes(token)) score += token.length > 2 ? 4 : 2;
+            if (String(item.word || '').toLowerCase() === token) score += 6;
+          });
+
+          if (String(item.exampleZh || '').includes(topic) || String(item.exampleEn || '').toLowerCase().includes(String(topic || '').toLowerCase())) {
+            score += 3;
+          }
+
+          allCandidates.push({
+            candidateId: item.id,
+            word: item.word,
+            pos: item.pos || '',
+            meaning: item.meaning,
+            phonetic: item.phonetic || '',
+            exampleEn: item.exampleEn || '',
+            exampleZh: item.exampleZh || '',
+            _score: score,
+            _rand: Math.random()
+          });
+        });
+      });
+
+    const ranked = [...allCandidates].sort((a, b) => {
+      if (b._score !== a._score) return b._score - a._score;
+      return a._rand - b._rand;
+    });
+
+    const prioritized = ranked.filter((item) => item._score > 0).slice(0, Math.min(120, limit));
+    const prioritizedIds = new Set(prioritized.map((item) => item.candidateId));
+    const fallback = ranked
+      .filter((item) => !prioritizedIds.has(item.candidateId))
+      .slice(0, Math.max(0, limit - prioritized.length));
+
+    return [...prioritized, ...fallback].map(({ _score, _rand, ...item }) => item);
+  };
+
+  // --- 姝ｅ父瀛︿範閫昏緫 ---
   const startLearning = (bookId) => {
     setSelectedBook(bookId);
     setShowBreakPrompt(false);
@@ -700,7 +1145,7 @@ export default function VocabularyMaster() {
     }
   };
 
-  // 阶段 1 跳转到 阶段 2
+  // 闃舵 1 璺宠浆鍒?闃舵 2
   const handleToStage2 = () => {
     setLearnStage(2);
   };
@@ -713,13 +1158,19 @@ export default function VocabularyMaster() {
     const topic = aiTopic.trim();
     if (!topic || isAiGenerating) return;
     const variationHint = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const candidates = buildAiCandidatePool(topic);
+
+    if (candidates.length < 6) {
+      alert('褰撳墠鏈湴璇嶅簱閲屽彲渚涚瓫閫夌殑鍊欓€夎瘝涓嶈冻锛屾棤娉曠敓鎴愪富棰樿瘝涔︺€?);
+      return;
+    }
 
     setIsAiGenerating(true);
     try {
       const res = await fetch('/api/generate-book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, variationHint })
+        body: JSON.stringify({ topic, variationHint, candidates })
       });
 
       const rawText = await res.text();
@@ -727,28 +1178,28 @@ export default function VocabularyMaster() {
       try {
         data = rawText ? JSON.parse(rawText) : {};
       } catch {
-        data = { error: `服务端返回了非 JSON 响应（HTTP ${res.status}）: ${rawText.slice(0, 180)}` };
+        data = { error: `鏈嶅姟绔繑鍥炰簡闈?JSON 鍝嶅簲锛圚TTP ${res.status}锛? ${rawText.slice(0, 180)}` };
       }
 
       if (!res.ok) {
-        throw new Error(data.error || `生成失败（HTTP ${res.status}）`);
+        throw new Error(data.error || `鐢熸垚澶辫触锛圚TTP ${res.status}锛塦);
       }
 
       const merged = addOrMergeAiBook(data.book, topic);
       setAiTopic('');
       alert(
         merged
-          ? `🎉 AI 词书已合并到：${topic}词书\n本次新增或补充了 ${data.book.words.length} 个候选词。`
-          : `🎉 AI 词书生成成功：${topic}词书\n已生成 ${data.book.words.length} 个单词。`
+          ? `馃帀 AI 璇嶄功宸插悎骞跺埌锛?{topic}璇嶄功\n鏈鏂板鎴栬ˉ鍏呬簡 ${data.book.words.length} 涓€欓€夎瘝銆俙
+          : `馃帀 AI 璇嶄功鐢熸垚鎴愬姛锛?{topic}璇嶄功\n宸茬敓鎴?${data.book.words.length} 涓崟璇嶃€俙
       );
     } catch (err) {
-      alert(`AI 生成失败：${err.message}`);
+      alert(`AI 鐢熸垚澶辫触锛?{err.message}`);
     } finally {
       setIsAiGenerating(false);
     }
   };
 
-  // 阶段 2 单选题点击 (错误即跳过，放入队尾)
+  // 闃舵 2 鍗曢€夐鐐瑰嚮 (閿欒鍗宠烦杩囷紝鏀惧叆闃熷熬)
   const handleOptionClick = (opt, word) => {
     if (mcFeedback) return; 
     
@@ -764,11 +1215,10 @@ export default function VocabularyMaster() {
     } else {
       playWordAudio(word.word, { allowUnlock: true });
       setTimeout(() => {
-        // 选择错误，加入队列末尾重新循环
-        setQueue(prev => [...prev, { ...word, _mcMistake: true }]);
+        // 閫夋嫨閿欒锛屽姞鍏ラ槦鍒楁湯灏鹃噸鏂板惊鐜?        setQueue(prev => [...prev, { ...word, _mcMistake: true }]);
         moveToNextWord();
         setMcFeedback(null);
-      }, 1500); // 留出1.5秒时间看正确答案
+      }, 1500); // 鐣欏嚭1.5绉掓椂闂寸湅姝ｇ‘绛旀
     }
   };
 
@@ -777,8 +1227,7 @@ export default function VocabularyMaster() {
     const newLearnedSession = [...learnedInSession, currentWord];
     setLearnedInSession(newLearnedSession);
 
-    // 计算真实的已完成唯一单词数
-    const totalUnique = new Set(activeLearningQueue.map(w => w.id)).size;
+    // 璁＄畻鐪熷疄鐨勫凡瀹屾垚鍞竴鍗曡瘝鏁?    const totalUnique = new Set(activeLearningQueue.map(w => w.id)).size;
     const learnedUnique = new Set(newLearnedSession.map(w => w.id)).size;
 
     if (learnedUnique === totalUnique) {
@@ -875,7 +1324,7 @@ export default function VocabularyMaster() {
           }
         }
       } catch (error) {
-        alert(`例句准备失败：${error.message}`);
+        alert(`渚嬪彞鍑嗗澶辫触锛?{error.message}`);
       } finally {
         setExampleGenerationState({ bookId: null, completed: 0, total: 0 });
         setIsPreparingReview(false);
@@ -898,10 +1347,10 @@ export default function VocabularyMaster() {
     setView('sentence_practice');
   };
 
-  // 拼写测验提交 (强制要求拼写正确后才进入下一个)
+  // 鎷煎啓娴嬮獙鎻愪氦 (寮哄埗瑕佹眰鎷煎啓姝ｇ‘鍚庢墠杩涘叆涓嬩竴涓?
   const handleSpellingSubmit = (e) => {
     e.preventDefault();
-    // 仅在完全正确时锁死提交
+    // 浠呭湪瀹屽叏姝ｇ‘鏃堕攣姝绘彁浜?
     if (!spellingInput.trim() || spellingFeedback === 'correct') return;
 
     const currentWord = spellingQueue[currentSpellingIndex];
@@ -912,14 +1361,15 @@ export default function VocabularyMaster() {
       playWordAudio(targetWord, { allowUnlock: true });
       
       const hasMistakeOnThisAttempt = currentWordMistakes > 0;
-      // 只有从来没在此 Session 拼错过，且本次也没有输错，才判定为掌握(Grade 4)
+      // 鍙湁浠庢潵娌″湪姝?Session 鎷奸敊杩囷紝涓旀湰娆′篃娌℃湁杈撻敊锛屾墠鍒ゅ畾涓烘帉鎻?Grade 4)
       const grade = (!hasMistakeOnThisAttempt && !currentWord._spMistake) ? 4 : 1;
       const prevProgress = userProgress[currentWord.id] || { repetition: 0, interval: 0, easeFactor: 2.5 };
       const newProgress = calculateSM2(grade, prevProgress.repetition, prevProgress.interval, prevProgress.easeFactor);
       
       setUserProgress(prev => ({ ...prev, [currentWord.id]: newProgress }));
+      persistProgressToD1(currentWord.id, newProgress);
 
-      // 如果本次打错了，加入队列末尾重新循环
+      // 濡傛灉鏈鎵撻敊浜嗭紝鍔犲叆闃熷垪鏈熬閲嶆柊寰幆
       if (hasMistakeOnThisAttempt) {
         setSpellingQueue(prev => [...prev, { ...currentWord, _spMistake: true }]);
       }
@@ -938,9 +1388,7 @@ export default function VocabularyMaster() {
       }, 1000);
     } else {
       setSpellingFeedback('incorrect');
-      playWordAudio(currentWord.word, { allowUnlock: true }); // 拼错时自动播放读音辅助记忆
-      setCurrentWordMistakes(prev => prev + 1); // 记录错误，触发循环机制
-
+      playWordAudio(currentWord.word, { allowUnlock: true }); // 鎷奸敊鏃惰嚜鍔ㄦ挱鏀捐闊宠緟鍔╄蹇?      setCurrentWordMistakes(prev => prev + 1); // 璁板綍閿欒锛岃Е鍙戝惊鐜満鍒?
       if (sessionType === 'smart_review') {
         setSpellingQueue(prev => prev.map((item, index) => (
           index === currentSpellingIndex
@@ -951,8 +1399,7 @@ export default function VocabularyMaster() {
     }
   };
 
-  // 例句使用提示后加入队尾循环
-  const handleShowSentenceAnswer = () => {
+  // 渚嬪彞浣跨敤鎻愮ず鍚庡姞鍏ラ槦灏惧惊鐜?  const handleShowSentenceAnswer = () => {
     setShowSentenceAnswer(true);
     setUsedHint(true);
     setSentenceHadMistake(true);
@@ -978,7 +1425,7 @@ export default function VocabularyMaster() {
 
   const handleSentenceNext = () => {
     const word = sentenceQueue[currentSentenceIndex];
-    // 如果使用了提示或之前错过，则加入队尾
+    // 濡傛灉浣跨敤浜嗘彁绀烘垨涔嬪墠閿欒繃锛屽垯鍔犲叆闃熷熬
     if (usedHint || sentenceHadMistake || word._snMistake) {
       setSentenceQueue(prev => [...prev, { ...word, _snMistake: true }]);
     }
@@ -997,12 +1444,13 @@ export default function VocabularyMaster() {
     }
   };
 
-  // --- 数据备份与恢复逻辑 ---
+  // --- 鏁版嵁澶囦唤涓庢仮澶嶉€昏緫 ---
   const handleExportData = () => {
     const backupData = {
       progress: userProgress,
       customBooks: customBooks,
-      hiddenBookIds: hiddenBookIds
+      hiddenBookIds: hiddenBookIds,
+      selectedBookIds: selectedBookIds
     };
     const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1023,35 +1471,178 @@ export default function VocabularyMaster() {
       try {
         const data = JSON.parse(event.target.result);
         if (data.progress !== undefined && data.customBooks !== undefined) {
-          if(confirm("警告：恢复数据将覆盖您当前浏览器的所有进度和词库。确定要继续吗？")) {
+          if(confirm("璀﹀憡锛氭仮澶嶆暟鎹皢瑕嗙洊鎮ㄥ綋鍓嶆祻瑙堝櫒鐨勬墍鏈夎繘搴﹀拰璇嶅簱銆傜‘瀹氳缁х画鍚楋紵")) {
             setUserProgress(data.progress);
             setCustomBooks(data.customBooks);
             setHiddenBookIds(Array.isArray(data.hiddenBookIds) ? data.hiddenBookIds : []);
-            alert("🎉 数据恢复成功！");
+            setSelectedBookIds(Array.isArray(data.selectedBookIds) ? data.selectedBookIds : []);
+            alert("馃帀 鏁版嵁鎭㈠鎴愬姛锛?);
           }
         } else {
-          // 兼容普通的词库 JSON 文件上传，防止用户误点
-          alert("文件格式不匹配。请确保这是您之前导出的备份文件（包含 progress 和 customBooks）。如果是新的词库文件，请在上方【扩充词汇库】区域上传。");
+          // 鍏煎鏅€氱殑璇嶅簱 JSON 鏂囦欢涓婁紶锛岄槻姝㈢敤鎴疯鐐?
+          alert("鏂囦欢鏍煎紡涓嶅尮閰嶃€傝纭繚杩欐槸鎮ㄤ箣鍓嶅鍑虹殑澶囦唤鏂囦欢锛堝寘鍚?progress 鍜?customBooks锛夈€傚鏋滄槸鏂扮殑璇嶅簱鏂囦欢锛岃鍦ㄤ笂鏂广€愭墿鍏呰瘝姹囧簱銆戝尯鍩熶笂浼犮€?);
         }
       } catch (err) {
-        alert("读取文件失败，可能不是合法的 JSON 文件：" + err.message);
+        alert("璇诲彇鏂囦欢澶辫触锛屽彲鑳戒笉鏄悎娉曠殑 JSON 鏂囦欢锛? + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = ''; // Reset input
   };
 
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    if (authSubmitting) return;
+
+    setAuthSubmitting(true);
+    setAuthError('');
+    try {
+      const data = await apiFetchJson('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(loginForm)
+      });
+      setLoginForm({ email: '', password: '' });
+      await handleAuthSuccess(data.user);
+    } catch (error) {
+      setAuthError(error.message || '鐧诲綍澶辫触');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    if (authSubmitting) return;
+
+    setAuthSubmitting(true);
+    setAuthError('');
+    try {
+      const data = await apiFetchJson('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(registerForm)
+      });
+      setRegisterForm({ email: '', password: '', username: '' });
+      await handleAuthSuccess(data.user);
+    } catch (error) {
+      setAuthError(error.message || '娉ㄥ唽澶辫触');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
   // --- UI Views ---
+  const renderAuthPanel = (mode = 'login') => {
+    const isLogin = mode === 'login';
+    const title = isLogin ? 'Login' : 'Create account';
+    const description = isLogin
+      ? 'After login, your books, progress and settings will be saved to D1 first.'
+      : 'Create an account to bind your books and study progress to the current user.';
+
+    return (
+      <div className="max-w-md mx-auto w-full animate-in fade-in zoom-in-95 duration-500">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)]">
+          <div className="text-center">
+            <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+              {isLogin ? <LogIn className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
+            </div>
+            <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950">{title}</h1>
+            <p className="mt-3 text-sm leading-7 text-slate-500">{description}</p>
+          </div>
+
+          <form onSubmit={isLogin ? handleLoginSubmit : handleRegisterSubmit} className="mt-8 space-y-4">
+            {!isLogin && (
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">Username</label>
+                <input
+                  type="text"
+                  value={registerForm.username}
+                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                  placeholder="Optional"
+                />
+              </div>
+            )}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+              <input
+                type="email"
+                value={isLogin ? loginForm.email : registerForm.email}
+                onChange={(e) => (
+                  isLogin
+                    ? setLoginForm((prev) => ({ ...prev, email: e.target.value }))
+                    : setRegisterForm((prev) => ({ ...prev, email: e.target.value }))
+                )}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+              <input
+                type="password"
+                value={isLogin ? loginForm.password : registerForm.password}
+                onChange={(e) => (
+                  isLogin
+                    ? setLoginForm((prev) => ({ ...prev, password: e.target.value }))
+                    : setRegisterForm((prev) => ({ ...prev, password: e.target.value }))
+                )}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                placeholder="At least 6 characters"
+                required
+              />
+            </div>
+
+            {authError && (
+              <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600 ring-1 ring-rose-100">
+                {authError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={authSubmitting}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {authSubmitting ? 'Submitting...' : isLogin ? 'Login' : 'Register'}
+            </button>
+          </form>
+
+          <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
+            <button
+              onClick={() => {
+                setAuthError('');
+                setView('home');
+              }}
+              className="font-medium transition hover:text-slate-800"
+            >
+              Continue as guest
+            </button>
+            <button
+              onClick={() => {
+                setAuthError('');
+                setView(isLogin ? 'register' : 'login');
+              }}
+              className="font-semibold text-indigo-600 transition hover:text-indigo-700"
+            >
+              {isLogin ? 'Create account' : 'Back to login'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderHome = () => {
-    const dueWordsCount = getDueWords().length;
-    const allBooks = Object.values(ALL_BOOKS);
-    const totalBooks = allBooks.length;
-    const totalWords = allBooks.reduce((sum, book) => sum + book.words.length, 0);
-    const totalLearned = allBooks.reduce((sum, book) => (
+    const dueWordsCount = getDueWordsForBooks(MY_BOOKS_MAP).length;
+    const totalBooks = MY_BOOKS.length;
+    const totalWords = MY_BOOKS.reduce((sum, book) => sum + book.words.length, 0);
+    const totalLearned = MY_BOOKS.reduce((sum, book) => (
       sum + book.words.filter(w => userProgress[w.id]).length
     ), 0);
     const dailyNewTarget = Math.max(0, Math.min(20, totalWords - totalLearned));
     const estimatedMinutes = Math.max(5, Math.ceil((dueWordsCount + dailyNewTarget) * 0.75));
+    const firstSelectedBookId = MY_BOOKS[0]?.id;
 
     return (
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-16">
@@ -1062,26 +1653,23 @@ export default function VocabularyMaster() {
                 <BrainCircuit className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Word Learning</p>
-                <p className="text-xs text-slate-500">本地记忆引擎 / 三阶段学习 / 动态复习</p>
+                <p className="text-sm font-semibold text-slate-900">鎴戠殑璇嶄功</p>
+                <p className="text-xs text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔?/p>
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">先做今天的任务，再扩你的词量。</h1>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">鍏堝仛浠婂ぉ鐨勪换鍔★紝鍐嶅喅瀹氬鍝竴鏈€?/h1>
               <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
-                我按参考稿把首页改成任务驱动布局。先看今天的复习和新词负荷，再决定进入哪一本词书。
-              </p>
+                棣栭〉鐜板湪鍙繚鐣欎綘鑷繁閫夋嫨鐨勮瘝涔︺€傛墍鏈夊彲閫夎瘝涔︺€佸鍏ュ叆鍙ｅ拰 AI 涓婚璇嶄功閮芥斁鍦ㄨ瘝涔﹀簱閲岀粺涓€绠＄悊銆?              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-600">
               <Flame className="h-4 w-4" />
-              当天可复习 {dueWordsCount} 词
-            </div>
+              褰撳ぉ鍙涔?{dueWordsCount} 璇?            </div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
               <TrendingUp className="h-4 w-4 text-indigo-500" />
-              已掌握 {totalLearned} 词
-            </div>
+              宸插姞鍏?{totalBooks} 鏈?            </div>
           </div>
         </div>
 
@@ -1092,51 +1680,50 @@ export default function VocabularyMaster() {
             <div className="space-y-7">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-emerald-50 backdrop-blur">
                 <Target className="h-4 w-4" />
-                今日任务
+                浠婃棩浠诲姟
               </div>
               <div>
-                <h3 className="text-3xl font-black tracking-tight sm:text-4xl">先处理该复习的词，再进入今天的新词。</h3>
+                <h3 className="text-3xl font-black tracking-tight sm:text-4xl">鍏堝鐞嗘垜鐨勮瘝涔︼紝鍐嶄粠璇嶄功搴撴墿灞曟柊涓婚銆?/h3>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-emerald-50/90 sm:text-base">
-                  Smart Review 会优先拉出今天已经到期的词条。做完复习后，再进入新词阶段，学习节奏更稳定。
-                </p>
+                  Smart Review 鍙細璇诲彇銆屾垜鐨勮瘝涔︺€嶉噷鐨勫埌鏈熻瘝鏉°€傚仛瀹屽涔犲悗锛屼綘鍙互闅忔椂鍘昏瘝涔﹀簱鎶婃柊鐨勮瘝涔﹀姞鍏ラ椤点€?                </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">待复习</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">寰呭涔?/p>
                   <p className="mt-3 text-4xl font-black">{dueWordsCount}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">今天应该回看的词</p>
+                  <p className="mt-2 text-sm text-emerald-50/80">鏉ヨ嚜鎴戠殑璇嶄功</p>
                 </div>
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">新词目标</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">鏂拌瘝鐩爣</p>
                   <p className="mt-3 text-4xl font-black">{dailyNewTarget}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">保持可持续负荷</p>
+                  <p className="mt-2 text-sm text-emerald-50/80">鎸夊綋鍓嶈瘝涔︿及绠?/p>
                 </div>
                 <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">预计耗时</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">棰勮鑰楁椂</p>
                   <p className="mt-3 text-4xl font-black">{estimatedMinutes}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">分钟内可完成</p>
+                  <p className="mt-2 text-sm text-emerald-50/80">鍒嗛挓鍐呭彲瀹屾垚</p>
                 </div>
               </div>
             </div>
             <div className="rounded-[1.75rem] border border-white/15 bg-slate-950/15 p-6 backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">任务摘要</p>
-                  <p className="mt-2 text-xl font-bold">今天先做复习，再开新词。</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">浠诲姟鎽樿</p>
+                  <p className="mt-2 text-xl font-bold">棣栭〉鍙繚鐣欎綘鐪熸瑕佸鐨勮瘝涔︺€?/p>
                 </div>
                 <CalendarClock className="h-9 w-9 text-emerald-50/85" />
               </div>
               <div className="mt-5 space-y-3 text-sm text-emerald-50/90">
                 <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>已接入词书</span>
+                  <span>鎴戠殑璇嶄功</span>
                   <span className="font-bold text-white">{totalBooks}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>词库总量</span>
+                  <span>璇嶆暟鎬婚噺</span>
                   <span className="font-bold text-white">{totalWords}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>已掌握词数</span>
+                  <span>宸叉帉鎻¤瘝鏁?/span>
                   <span className="font-bold text-white">{totalLearned}</span>
                 </div>
               </div>
@@ -1146,18 +1733,23 @@ export default function VocabularyMaster() {
                   disabled={dueWordsCount === 0 || isPreparingReview}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-emerald-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isPreparingReview ? '正在准备复习例句' : dueWordsCount > 0 ? '开始今日复习' : '今日复习已清空'}
+                  {isPreparingReview ? '姝ｅ湪鍑嗗澶嶄範渚嬪彞' : dueWordsCount > 0 ? '寮€濮嬩粖鏃ュ涔? : '鎴戠殑璇嶄功鏆傛棤鍒版湡澶嶄範'}
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => {
-                    const firstBookId = allBooks[0]?.id;
-                    if (firstBookId) startLearning(firstBookId);
+                    if (firstSelectedBookId) startLearning(firstSelectedBookId);
                   }}
-                  disabled={allBooks.length === 0}
+                  disabled={!firstSelectedBookId}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  从当前词书继续
+                  浠庢垜鐨勮瘝涔︾户缁?                </button>
+                <button
+                  onClick={() => setView('library')}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-slate-950/15 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-950/25"
+                >
+                  鍘昏瘝涔﹀簱
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -1171,7 +1763,7 @@ export default function VocabularyMaster() {
                 <CheckCircle2 className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">学习完成率</p>
+                <p className="text-sm font-medium text-slate-500">瀛︿範瀹屾垚鐜?/p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{totalWords ? Math.round((totalLearned / totalWords) * 100) : 0}%</p>
               </div>
             </div>
@@ -1182,7 +1774,7 @@ export default function VocabularyMaster() {
                 <Flame className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">当天可复习词数</p>
+                <p className="text-sm font-medium text-slate-500">褰撳ぉ鍙涔犺瘝鏁?/p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{dueWordsCount}</p>
               </div>
             </div>
@@ -1193,7 +1785,7 @@ export default function VocabularyMaster() {
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-500">在库词书数量</p>
+                <p className="text-sm font-medium text-slate-500">鎴戠殑璇嶄功鏁伴噺</p>
                 <p className="mt-1 text-3xl font-black text-slate-900">{totalBooks}</p>
               </div>
             </div>
@@ -1202,27 +1794,37 @@ export default function VocabularyMaster() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">我的词书</h2>
-            <p className="mt-1 text-sm text-slate-500">卡片保留原功能，只把层级和密度按参考稿重排。</p>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">鎴戠殑璇嶄功</h2>
+            <p className="mt-1 text-sm text-slate-500">鍙睍绀轰綘宸茬粡鍔犲叆棣栭〉鐨勮瘝涔︼紝鎸夋坊鍔犻『搴忔帓鍒椼€?/p>
           </div>
-          <div className="hidden items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 sm:inline-flex">
-            已接入 {totalBooks} 本
-            <ChevronRight className="h-4 w-4" />
-          </div>
+          <button
+            onClick={() => setView('library')}
+            className="hidden items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-indigo-600 sm:inline-flex"
+          >
+            杩涘叆璇嶄功搴?            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          {Object.keys(ALL_BOOKS).length === 0 ? (
-            <div className="col-span-full py-12 px-6 text-center bg-white rounded-3xl border-2 border-slate-200 border-dashed text-slate-500">
+          {MY_BOOKS.length === 0 ? (
+            <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
               <Book className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-              <h3 className="text-lg font-bold text-slate-700 mb-1">暂无学习词库</h3>
-              <p className="text-sm">请从下方「扩充词汇库」区域导入您的第一本词书</p>
+              <h3 className="text-xl font-black text-slate-800">浣犺繕娌℃湁娣诲姞璇嶄功</h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
+                鍘昏瘝涔﹀簱閫夋嫨浣犺瀛︿範鐨勮瘝涔︺€傛坊鍔犲悗锛岄椤典細绔嬪嵆鍑虹幇瀵瑰簲鍗＄墖锛屽涔犱篃鍙細鍩轰簬杩欎簺璇嶄功杩涜銆?              </p>
+              <button
+                onClick={() => setView('library')}
+                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
+              >
+                鍘昏瘝涔﹀簱
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
           ) : (
-            Object.values(ALL_BOOKS).map(book => {
-              const totalWords = book.words.length;
+            MY_BOOKS.map(book => {
+              const bookWordCount = book.words.length;
               const learnedCount = book.words.filter(w => userProgress[w.id]).length;
-              const progressPercent = Math.round((learnedCount / totalWords) * 100) || 0;
+              const progressPercent = Math.round((learnedCount / bookWordCount) * 100) || 0;
               const missingExamplesCount = book.words.filter(w => !w.exampleEn || !w.exampleZh).length;
               const missingPhoneticsCount = book.words.filter(w => !w.phonetic).length;
 
@@ -1234,9 +1836,9 @@ export default function VocabularyMaster() {
                 >
                   <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-slate-50 via-indigo-50/60 to-white opacity-90" />
                   <button 
-                    onClick={(e) => deleteBook(e, book.id)}
+                    onClick={(e) => handleRemoveOrDeleteBook(e, book.id)}
                     className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
-                    title={customBooks[book.id] ? "删除自定义词库" : "隐藏内置词库"}
+                    title={customBooks[book.id] ? "鍒犻櫎鑷畾涔夎瘝搴? : "浠庨椤电Щ闄?}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1245,23 +1847,25 @@ export default function VocabularyMaster() {
                       <Book className="w-6 h-6" />
                     </div>
                     <span className="mt-1 mr-8 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
-                      {totalWords} 词
-                    </span>
+                      {bookWordCount} 璇?                    </span>
                   </div>
                   <div className="relative z-10">
+                    <div className="mb-2 inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
+                      {getBookCategory(book)}
+                    </div>
                     <h3 className="pr-6 text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
-                    <p className="mt-2 text-sm text-slate-500">已学习 {learnedCount} / {totalWords} 词，点击即可继续。</p>
+                    <p className="mt-2 text-sm text-slate-500">宸插涔?{learnedCount} / {bookWordCount} 璇嶏紝鐐瑰嚮鍗冲彲缁х画銆?/p>
                   </div>
                   <div className="relative z-10 mt-5 rounded-2xl bg-slate-50/90 p-4 ring-1 ring-slate-100">
                     <p className="text-xs leading-6 text-slate-500">
-                      {missingExamplesCount === 0 ? '已带完整例句' : `复习时自动补齐 ${missingExamplesCount} 条例句`}
-                      {' · '}
-                      {missingPhoneticsCount === 0 ? '已带完整音标' : `还缺 ${missingPhoneticsCount} 条音标`}
+                      {missingExamplesCount === 0 ? '宸插甫瀹屾暣渚嬪彞' : `澶嶄範鏃惰嚜鍔ㄨˉ榻?${missingExamplesCount} 鏉′緥鍙}
+                      {' 路 '}
+                      {missingPhoneticsCount === 0 ? '宸插甫瀹屾暣闊虫爣' : `杩樼己 ${missingPhoneticsCount} 鏉￠煶鏍嘸}
                     </p>
                   </div>
                   <div className="relative z-10 mt-auto w-full pt-6">
                     <div className="mb-3 flex justify-between text-sm text-slate-500">
-                      <span className="font-medium">总学习进度</span>
+                      <span className="font-medium">鎬诲涔犺繘搴?/span>
                       <span>{progressPercent}%</span>
                     </div>
                     <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -1271,8 +1875,7 @@ export default function VocabularyMaster() {
                       />
                     </div>
                     <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600">
-                      进入这本词书
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      寮€濮嬭儗璇?                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </div>
                   </div>
                 </div>
@@ -1281,28 +1884,26 @@ export default function VocabularyMaster() {
           )}
         </div>
 
-        {/* --- 词库导入模块 --- */}
+        {/* --- 璇嶅簱瀵煎叆妯″潡 --- */}
+        {false && (
+        <>
         <div className="mt-12 bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100">
           <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Download className="w-5 h-5 text-indigo-600" />
-            内置词书与扩充词库
-          </h3>
+            鍐呯疆璇嶄功涓庢墿鍏呰瘝搴?          </h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            四级核心与六级进阶已经内置在应用里，朋友打开网页即可直接学习，不再依赖 GitHub 在线下载。您仍然可以继续上传自己的本地词书。
-          </p>
+            鍥涚骇鏍稿績涓庡叚绾ц繘闃跺凡缁忓唴缃湪搴旂敤閲岋紝鏈嬪弸鎵撳紑缃戦〉鍗冲彲鐩存帴瀛︿範锛屼笉鍐嶄緷璧?GitHub 鍦ㄧ嚎涓嬭浇銆傛偍浠嶇劧鍙互缁х画涓婁紶鑷繁鐨勬湰鍦拌瘝涔︺€?          </p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-4">
             <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
               <Book className="w-5 h-5 mr-2" />
-              已内置四级核心
-            </div>
+              宸插唴缃洓绾ф牳蹇?            </div>
             <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
               <Book className="w-5 h-5 mr-2" />
-              已内置六级进阶
-            </div>
+              宸插唴缃叚绾ц繘闃?            </div>
             
             <label className="flex-1 min-w-[200px] px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-sm">
               <Upload className="w-5 h-5 mr-2" />
-              上传本地 .txt / .json
+              涓婁紶鏈湴 .txt / .json
               <input type="file" accept=".txt,.json" className="hidden" onChange={handleFileUpload} />
             </label>
           </div>
@@ -1311,11 +1912,10 @@ export default function VocabularyMaster() {
         <div className="mt-8 bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
           <h3 className="text-2xl font-black text-slate-900 mb-3 flex items-center gap-3">
             <Sparkles className="w-7 h-7 text-indigo-500" />
-            AI 智能生成词书
+            AI 鏅鸿兘鐢熸垚璇嶄功
           </h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            输入一个主题，系统会调用 DeepSeek 自动生成一套可直接学习的单词书，并保存到当前设备。
-          </p>
+            杈撳叆涓€涓富棰橈紝绯荤粺浼氳皟鐢?DeepSeek 鑷姩鐢熸垚涓€濂楀彲鐩存帴瀛︿範鐨勫崟璇嶄功锛屽苟淇濆瓨鍒板綋鍓嶈澶囥€?          </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <input
               type="text"
@@ -1324,7 +1924,7 @@ export default function VocabularyMaster() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAiGenerateBook();
               }}
-              placeholder="如：咖啡馆用语、大厂面试、赛博朋克、旅游英语..."
+              placeholder="濡傦細鍜栧暋棣嗙敤璇€佸ぇ鍘傞潰璇曘€佽禌鍗氭湅鍏嬨€佹梾娓歌嫳璇?.."
               className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 bg-white text-lg outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all"
             />
             <button
@@ -1335,26 +1935,28 @@ export default function VocabularyMaster() {
               {isAiGenerating ? (
                 <>
                   <RotateCcw className="w-5 h-5 animate-spin" />
-                  生成中
-                </>
+                  鐢熸垚涓?                </>
               ) : (
                 <>
                   <Wand2 className="w-5 h-5" />
-                  生成
+                  鐢熸垚
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* --- 数据备份模块 --- */}
+        {/* --- 鏁版嵁澶囦唤妯″潡 --- */}
+        </>
+        )}
+
         <div className="mt-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
             <Save className="w-5 h-5 text-slate-600" />
-            项目数据备份与恢复
+            椤圭洰鏁版嵁澶囦唤涓庢仮澶?
           </h3>
           <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            您的学习进度默认保存在当前浏览器中。若您需要更换设备或防止清理浏览器缓存导致数据丢失，请定期导出备份。
+            鎮ㄧ殑瀛︿範杩涘害榛樿淇濆瓨鍦ㄥ綋鍓嶆祻瑙堝櫒涓€傝嫢鎮ㄩ渶瑕佹洿鎹㈣澶囨垨闃叉娓呯悊娴忚鍣ㄧ紦瀛樺鑷存暟鎹涪澶憋紝璇峰畾鏈熷鍑哄浠姐€?
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <button
@@ -1362,13 +1964,196 @@ export default function VocabularyMaster() {
               className="flex-1 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl transition-colors flex items-center justify-center border border-emerald-200"
             >
               <Save className="w-5 h-5 mr-2" />
-              导出进度备份 (.json)
+              瀵煎嚭杩涘害澶囦唤 (.json)
             </button>
             <label className="flex-1 px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center cursor-pointer">
               <UploadCloud className="w-5 h-5 mr-2" />
-              恢复历史备份
+              鎭㈠鍘嗗彶澶囦唤
               <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
             </label>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLibrary = () => {
+    const normalizedSearch = librarySearch.trim().toLowerCase();
+    const filteredBooks = ALL_BOOK_LIST.filter((book) => {
+      const category = getBookCategory(book);
+      const matchesCategory = libraryFilter === '鍏ㄩ儴' || category === libraryFilter;
+      if (!matchesCategory) return false;
+      if (!normalizedSearch) return true;
+
+      const haystack = `${book.name} ${category} ${getBookDescription(book)}`.toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+
+    return (
+      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-16">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-3 rounded-full border border-indigo-100 bg-white px-4 py-2 shadow-sm">
+              <div className="rounded-2xl bg-indigo-600 p-2.5 text-white shadow-lg shadow-indigo-500/20">
+                <Book className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">璇嶄功搴?/p>
+                <p className="text-xs text-slate-500">鎵€鏈夊彲鐢ㄨ瘝涔﹂兘鍦ㄨ繖閲岀粺涓€绠＄悊</p>
+              </div>
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">浠庤瘝涔﹀簱閫夋嫨锛屽啀鍔犲叆棣栭〉銆?/h1>
+              <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
+                鎼滅储銆佺瓫閫夊苟鎸戦€変綘鐪熸瑕佸鐨勮瘝涔︺€傚姞鍏ュ悗锛岄椤典細绔嬪嵆鍚屾鏄剧ず銆?              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setView('home')}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-indigo-600"
+          >
+            杩斿洖鎴戠殑璇嶄功
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={librarySearch}
+                onChange={(e) => setLibrarySearch(e.target.value)}
+                placeholder="鎼滅储璇嶄功鍚嶇О銆佸垎绫绘垨绠€浠?
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {BOOK_LIBRARY_FILTERS.map((filter) => {
+                const active = libraryFilter === filter;
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setLibraryFilter(filter)}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    {filter}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {!authUser && (
+            <p className="mt-4 text-sm text-slate-500">
+              褰撳墠涓烘湭鐧诲綍妯″紡銆備綘浠嶇劧鍙互鎶婅瘝涔﹀姞鍏ラ椤靛苟淇濆瓨鍦ㄦ湰鏈猴紝鐧诲綍鍚庝細鑷姩鍚屾鍒颁簯绔€?            </p>
+          )}
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {filteredBooks.map((book) => {
+            const isSelected = selectedBookIds.includes(book.id);
+            const category = getBookCategory(book);
+            return (
+              <div key={book.id} className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)]">
+                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-slate-50 via-indigo-50/60 to-white opacity-90" />
+                <div className="relative z-10 mb-8 flex items-start justify-between">
+                  <div className="rounded-2xl bg-white p-3 text-indigo-600 ring-1 ring-slate-200 shadow-sm">
+                    <Book className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
+                    {book.words.length} 璇?                  </span>
+                </div>
+                <div className="relative z-10">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{category}</span>
+                    {isSelected && <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">宸叉坊鍔犲埌棣栭〉</span>}
+                  </div>
+                  <h3 className="text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-500">{getBookDescription(book)}</p>
+                </div>
+                <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={() => toggleBookSelection(book.id)}
+                    className={`flex-1 rounded-2xl px-5 py-4 text-sm font-bold transition ${isSelected ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700'}`}
+                  >
+                    {isSelected ? '浠庨椤电Щ闄? : '娣诲姞鍒伴椤?}
+                  </button>
+                  {isSelected && (
+                    <button
+                      onClick={() => startLearning(book.id)}
+                      className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      寮€濮嬭儗璇?                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {filteredBooks.length === 0 && (
+            <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
+              <Search className="mx-auto mb-4 h-12 w-12 text-slate-300" />
+              <h3 className="text-xl font-black text-slate-800">娌℃湁鎵惧埌绗﹀悎鏉′欢鐨勮瘝涔?/h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">璇曡瘯璋冩暣鎼滅储璇嶆垨鍒囨崲鍒嗙被绛涢€夛紝涔熷彲浠ヤ笂浼犺嚜宸辩殑鏈湴璇嶄功銆?/p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Download className="w-5 h-5 text-indigo-600" />
+            鍐呯疆璇嶄功涓庢墿鍏呰瘝搴?          </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            杩欓噷缁熶竴绠＄悊鎵€鏈夊彲鐢ㄨ瘝涔︺€備綘鍙互缁х画涓婁紶鏈湴璇嶄功锛屼笂浼犲悗浼氳嚜鍔ㄥ姞鍏ラ椤碉紝鍚屾椂涔熶細鍑虹幇鍦ㄨ瘝涔﹀簱閲屻€?          </p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              宸插唴缃洓绾ф牳蹇?            </div>
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              宸插唴缃叚绾ц繘闃?            </div>
+            <label className="flex-1 min-w-[200px] px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-sm">
+              <Upload className="w-5 h-5 mr-2" />
+              涓婁紶鏈湴 .txt / .json
+              <input type="file" accept=".txt,.json" className="hidden" onChange={handleFileUpload} />
+            </label>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900 mb-3 flex items-center gap-3">
+            <Sparkles className="w-7 h-7 text-indigo-500" />
+            AI 鏅鸿兘鐢熸垚璇嶄功
+          </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            杈撳叆涓€涓富棰橈紝绯荤粺浼氫粠鐜版湁璇嶅簱閲岀瓫閫夊悎閫傜殑鍊欓€夎瘝锛岀敓鎴愭柊鐨勪笓棰樿瘝涔︼紝骞惰嚜鍔ㄥ姞鍏ラ椤点€?          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <input
+              type="text"
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAiGenerateBook();
+              }}
+              placeholder="濡傦細鍜栧暋棣嗙敤璇€佸ぇ鍘傞潰璇曘€佹梾娓歌嫳璇?.."
+              className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 bg-white text-lg outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all"
+            />
+            <button
+              onClick={handleAiGenerateBook}
+              disabled={!aiTopic.trim() || isAiGenerating}
+              className="px-8 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 min-w-[160px]"
+            >
+              {isAiGenerating ? (
+                <>
+                  <RotateCcw className="w-5 h-5 animate-spin" />
+                  鐢熸垚涓?                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  鐢熸垚
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -1379,8 +2164,7 @@ export default function VocabularyMaster() {
     const word = activeLearningQueue[currentWordIndex];
     if (!word) return null;
 
-    // 使用 Set 计算去重后的实际任务进度，防止错误循环导致分母变大
-    const totalUnique = new Set(activeLearningQueue.map(w => w.id)).size;
+    // 浣跨敤 Set 璁＄畻鍘婚噸鍚庣殑瀹為檯浠诲姟杩涘害锛岄槻姝㈤敊璇惊鐜鑷村垎姣嶅彉澶?    const totalUnique = new Set(activeLearningQueue.map(w => w.id)).size;
     const remainingUnique = new Set(activeLearningQueue.slice(currentWordIndex).map(w => w.id)).size;
     const currentProgress = totalUnique - remainingUnique + 1;
     const isStage1 = learnStage === 1;
@@ -1395,13 +2179,13 @@ export default function VocabularyMaster() {
             className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
           >
             <RotateCcw className="h-4 w-4" />
-            返回首页
+            杩斿洖棣栭〉
           </button>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {[
-              { step: 1, label: '听音辨义' },
-              { step: 2, label: '记忆输入' },
-              { step: 3, label: '巩固确认' }
+              { step: 1, label: '鍚煶杈ㄤ箟' },
+              { step: 2, label: '璁板繂杈撳叆' },
+              { step: 3, label: '宸╁浐纭' }
             ].map(item => {
               const active = learnStage === item.step;
               return (
@@ -1443,9 +2227,8 @@ export default function VocabularyMaster() {
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/90 px-6 py-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-indigo-600 ring-1 ring-slate-200">
                 <GraduationCap className="h-4 w-4" />
-                学习中
-              </div>
-              <div className="text-sm font-medium text-slate-400">剩余 {remainingUnique} 词</div>
+                瀛︿範涓?              </div>
+              <div className="text-sm font-medium text-slate-400">鍓╀綑 {remainingUnique} 璇?/div>
             </div>
 
             <div className="flex min-h-[620px] flex-col justify-between p-8 sm:p-12">
@@ -1461,7 +2244,7 @@ export default function VocabularyMaster() {
                       className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-600 transition hover:bg-slate-100"
                     >
                       <Volume2 className="h-5 w-5 text-indigo-500" />
-                      <span className="text-lg font-mono tracking-wide">{word.phonetic || '/暂无音标/'}</span>
+                      <span className="text-lg font-mono tracking-wide">{word.phonetic || '/鏆傛棤闊虫爣/'}</span>
                     </button>
 
                     <div className="my-10 h-px w-full max-w-xl bg-slate-100" />
@@ -1508,7 +2291,7 @@ export default function VocabularyMaster() {
                     onClick={handleToStage2}
                     className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
                   >
-                    查看释义
+                    鏌ョ湅閲婁箟
                     <ArrowRight className="h-5 w-5" />
                   </button>
                 )}
@@ -1517,7 +2300,7 @@ export default function VocabularyMaster() {
                     onClick={handleToStage3}
                     className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
                   >
-                    进入巩固
+                    杩涘叆宸╁浐
                     <ArrowRight className="h-5 w-5" />
                   </button>
                 )}
@@ -1527,19 +2310,19 @@ export default function VocabularyMaster() {
                       onClick={() => handleLearningDecision('forgot')}
                       className="rounded-[1.25rem] bg-slate-900 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
                     >
-                      不会
+                      涓嶄細
                     </button>
                     <button
                       onClick={() => handleLearningDecision('blurred')}
                       className="rounded-[1.25rem] bg-indigo-600 py-4 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]"
                     >
-                      模糊
+                      妯＄硦
                     </button>
                     <button
                       onClick={() => handleLearningDecision('mastered')}
                       className="rounded-[1.25rem] bg-emerald-500 py-4 text-base font-bold text-white transition hover:bg-emerald-600 active:scale-[0.98]"
                     >
-                      掌握
+                      鎺屾彙
                     </button>
                   </div>
                 )}
@@ -1549,20 +2332,20 @@ export default function VocabularyMaster() {
 
           <div className="space-y-4">
             <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">本次任务</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">鏈浠诲姟</p>
               <p className="mt-3 text-4xl font-black text-slate-950">{currentProgress}</p>
-              <p className="mt-2 text-sm text-slate-500">当前进行到第 {currentProgress} 个词，队列总量 {totalUnique}。</p>
+              <p className="mt-2 text-sm text-slate-500">褰撳墠杩涜鍒扮 {currentProgress} 涓瘝锛岄槦鍒楁€婚噺 {totalUnique}銆?/p>
             </div>
             <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">阶段说明</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">闃舵璇存槑</p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <p><span className="font-semibold text-slate-900">1.</span> 先只看单词和音标，先听发音，不展示释义和例句。</p>
-                <p><span className="font-semibold text-slate-900">2.</span> 再展开释义和例句，完成记忆输入。</p>
-                <p><span className="font-semibold text-slate-900">3.</span> 最后再做一次自我判断，不会退回听音，模糊退回记忆，掌握进入下一词。</p>
+                <p><span className="font-semibold text-slate-900">1.</span> 鍏堝彧鐪嬪崟璇嶅拰闊虫爣锛屽厛鍚彂闊筹紝涓嶅睍绀洪噴涔夊拰渚嬪彞銆?/p>
+                <p><span className="font-semibold text-slate-900">2.</span> 鍐嶅睍寮€閲婁箟鍜屼緥鍙ワ紝瀹屾垚璁板繂杈撳叆銆?/p>
+                <p><span className="font-semibold text-slate-900">3.</span> 鏈€鍚庡啀鍋氫竴娆¤嚜鎴戝垽鏂紝涓嶄細閫€鍥炲惉闊筹紝妯＄硦閫€鍥炶蹇嗭紝鎺屾彙杩涘叆涓嬩竴璇嶃€?/p>
               </div>
             </div>
             <div className="rounded-[1.8rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">当前词状态</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">褰撳墠璇嶇姸鎬?/p>
               <p className="mt-3 text-2xl font-black">{word.word}</p>
               {!isStage1 && <p className="mt-2 text-sm text-slate-300">{word.meaning}</p>}
               {word.phonetic && (
@@ -1600,14 +2383,14 @@ export default function VocabularyMaster() {
       };
     });
 
-    // 使用 Set 计算去重后的实际任务进度
+    // 浣跨敤 Set 璁＄畻鍘婚噸鍚庣殑瀹為檯浠诲姟杩涘害
     const totalUnique = new Set(spellingQueue.map(w => w.id)).size;
     const remainingUnique = new Set(spellingQueue.slice(currentSpellingIndex).map(w => w.id)).size;
     const currentProgress = totalUnique - remainingUnique + 1;
 
     const titleText = sessionType === 'smart_review' 
-      ? `智能复习拼写 (${currentProgress}/${totalUnique})`
-      : `阶段拼写测验 (${currentProgress}/${totalUnique})`;
+      ? `鏅鸿兘澶嶄範鎷煎啓 (${currentProgress}/${totalUnique})`
+      : `闃舵鎷煎啓娴嬮獙 (${currentProgress}/${totalUnique})`;
 
     return (
       <div className="max-w-xl mx-auto w-full animate-in slide-in-from-right-8 duration-500">
@@ -1616,7 +2399,7 @@ export default function VocabularyMaster() {
             {sessionType === 'smart_review' ? <CalendarClock className="w-4 h-4" /> : <GraduationCap className="w-4 h-4"/>}
             {titleText}
           </span>
-          <h2 className="text-2xl font-bold text-slate-800">根据提示拼写出对应的英文单词</h2>
+          <h2 className="text-2xl font-bold text-slate-800">鏍规嵁鎻愮ず鎷煎啓鍑哄搴旂殑鑻辨枃鍗曡瘝</h2>
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
@@ -1625,7 +2408,7 @@ export default function VocabularyMaster() {
               <div className="flex items-start gap-3 min-w-0">
               <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><Book className="w-4 h-4"/></div>
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">释义提示</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">閲婁箟鎻愮ず</span>
                 {word.phonetic && (
                   <p className="text-sm text-slate-500 font-mono mt-1">{word.phonetic}</p>
                 )}
@@ -1640,7 +2423,7 @@ export default function VocabularyMaster() {
                   type="button"
                   onClick={() => playWordAudio(word.word, { allowUnlock: true })}
                   className="shrink-0 p-2 text-amber-500 hover:bg-amber-100 rounded-full transition-colors group -mt-1"
-                  title="播放读音提示"
+                  title="鎾斁璇婚煶鎻愮ず"
                 >
                   <Lightbulb className="w-7 h-7 group-active:scale-90 transition-transform" />
                 </button>
@@ -1651,7 +2434,7 @@ export default function VocabularyMaster() {
               <div className="flex items-start gap-3">
                 <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><BrainCircuit className="w-4 h-4"/></div>
                 <div>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">语境提示</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">璇鎻愮ず</span>
                   <p className="text-lg text-slate-700 mt-1">{word.exampleZh}</p>
                 </div>
               </div>
@@ -1700,10 +2483,10 @@ export default function VocabularyMaster() {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck="false"
-                aria-label="拼写输入框"
+                aria-label="鎷煎啓杈撳叆妗?
               />
               <p className="mt-4 text-center text-sm text-slate-400">
-                每条横线代表一个字母，输错的位置会标红
+                姣忔潯妯嚎浠ｈ〃涓€涓瓧姣嶏紝杈撻敊鐨勪綅缃細鏍囩孩
               </p>
             </div>
             
@@ -1712,7 +2495,7 @@ export default function VocabularyMaster() {
               disabled={!spellingInput.trim() || spellingFeedback === 'correct'}
               className="mt-6 w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-2xl flex items-center justify-center transition-all active:scale-[0.98]"
             >
-              提交校验
+              鎻愪氦鏍￠獙
               <ArrowRight className="ml-2 w-5 h-5" />
             </button>
           </form>
@@ -1726,17 +2509,17 @@ export default function VocabularyMaster() {
           {spellingFeedback === 'incorrect' && (
             <div className="mt-4 p-4 bg-rose-50 text-rose-700 rounded-xl flex items-center text-sm animate-in slide-in-from-top-2">
               <XCircle className="w-5 h-5 mr-2 shrink-0" />
-              拼写错误，请修改后重新提交。（该词将在稍后重测）
+              鎷煎啓閿欒锛岃淇敼鍚庨噸鏂版彁浜ゃ€傦紙璇ヨ瘝灏嗗湪绋嶅悗閲嶆祴锛?
               <button 
                 type="button"
                 onClick={() => {
-                  setCurrentWordMistakes(prev => prev + 1); // 记录错误以重置分数
+                  setCurrentWordMistakes(prev => prev + 1); // 璁板綍閿欒浠ラ噸缃垎鏁?
                   setSpellingInput(word.word);
                   setSpellingFeedback(null);
                 }}
                 className="ml-auto underline font-medium hover:text-rose-900 shrink-0"
               >
-                直接填入答案
+                鐩存帴濉叆绛旀
               </button>
             </div>
           )}
@@ -1774,7 +2557,7 @@ export default function VocabularyMaster() {
       };
     });
 
-    // 使用 Set 计算去重后的实际任务进度
+    // 浣跨敤 Set 璁＄畻鍘婚噸鍚庣殑瀹為檯浠诲姟杩涘害
     const totalUnique = new Set(sentenceQueue.map(w => w.id)).size;
     const remainingUnique = new Set(sentenceQueue.slice(currentSentenceIndex).map(w => w.id)).size;
     const currentProgress = totalUnique - remainingUnique + 1;
@@ -1784,9 +2567,9 @@ export default function VocabularyMaster() {
         <div className="text-center mb-8">
           <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-sm font-bold rounded-full mb-4 flex items-center gap-2 justify-center w-max mx-auto">
             <Keyboard className="w-4 h-4"/>
-            拼写句子 ({currentProgress}/{totalUnique})
+            鎷煎啓鍙ュ瓙 ({currentProgress}/{totalUnique})
           </span>
-          <h2 className="text-2xl font-bold text-slate-800">请根据中文提示，拼写完整英文句子</h2>
+          <h2 className="text-2xl font-bold text-slate-800">璇锋牴鎹腑鏂囨彁绀猴紝鎷煎啓瀹屾暣鑻辨枃鍙ュ瓙</h2>
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
@@ -1794,7 +2577,7 @@ export default function VocabularyMaster() {
             <div className="flex items-start gap-3">
               <div className="mt-1 bg-slate-100 text-slate-500 p-2 rounded-lg"><BrainCircuit className="w-4 h-4"/></div>
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目标中文句意</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">鐩爣涓枃鍙ユ剰</span>
                 <p className="text-lg text-slate-800 font-medium mt-1">{word.exampleZh}</p>
               </div>
             </div>
@@ -1802,7 +2585,7 @@ export default function VocabularyMaster() {
               type="button"
               onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
               className="shrink-0 p-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-full transition-colors"
-              title="播放整句提示"
+              title="鎾斁鏁村彞鎻愮ず"
             >
               <Volume2 className="w-5 h-5" />
             </button>
@@ -1813,8 +2596,8 @@ export default function VocabularyMaster() {
             onClick={() => sentenceInputRef.current?.focus()}
           >
             <div className="mb-4">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">目标中文句意</span>
-              <p className="mt-2 text-sm text-slate-500">下方每条横线对应一个英文单词，点击后直接输入整句即可。</p>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">鐩爣涓枃鍙ユ剰</span>
+              <p className="mt-2 text-sm text-slate-500">涓嬫柟姣忔潯妯嚎瀵瑰簲涓€涓嫳鏂囧崟璇嶏紝鐐瑰嚮鍚庣洿鎺ヨ緭鍏ユ暣鍙ュ嵆鍙€?/p>
             </div>
             <textarea
               ref={sentenceInputRef}
@@ -1862,7 +2645,7 @@ export default function VocabularyMaster() {
                 onClick={handleShowSentenceAnswer}
                 className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
               >
-                显示答案提示
+                鏄剧ず绛旀鎻愮ず
               </button>
             )}
             <button
@@ -1870,17 +2653,16 @@ export default function VocabularyMaster() {
               disabled={!sentenceInput.trim()}
               className={`flex-1 py-4 font-bold rounded-2xl flex items-center justify-center transition-all ${sentenceInput.trim() ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md active:scale-[0.98]' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
             >
-              {isFullyCorrect ? '完全正确，下一个' : sentenceSubmitted ? '继续修改句子' : '提交句子'}
+              {isFullyCorrect ? '瀹屽叏姝ｇ‘锛屼笅涓€涓? : sentenceSubmitted ? '缁х画淇敼鍙ュ瓙' : '鎻愪氦鍙ュ瓙'}
               {isFullyCorrect && <ArrowRight className="ml-2 w-5 h-5" />}
             </button>
           </div>
           {sentenceSubmitted && !isFullyCorrect && !showSentenceAnswer && (
             <p className="mt-4 text-sm text-rose-500 text-center animate-in fade-in">
-              句子还没有完全拼对，修改后再提交。只有提交后才会标出错误位置。
-            </p>
+              鍙ュ瓙杩樻病鏈夊畬鍏ㄦ嫾瀵癸紝淇敼鍚庡啀鎻愪氦銆傚彧鏈夋彁浜ゅ悗鎵嶄細鏍囧嚭閿欒浣嶇疆銆?            </p>
           )}
           {usedHint && !isFullyCorrect && (
-            <p className="mt-4 text-sm text-amber-500 text-center animate-in fade-in">使用提示后，该句子将在队尾重新循环</p>
+            <p className="mt-4 text-sm text-amber-500 text-center animate-in fade-in">浣跨敤鎻愮ず鍚庯紝璇ュ彞瀛愬皢鍦ㄩ槦灏鹃噸鏂板惊鐜?/p>
           )}
         </div>
       </div>
@@ -1892,18 +2674,18 @@ export default function VocabularyMaster() {
       <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
         <Check className="w-12 h-12" />
       </div>
-      <h2 className="text-3xl font-black text-slate-800">任务圆满完成！</h2>
+      <h2 className="text-3xl font-black text-slate-800">浠诲姟鍦嗘弧瀹屾垚锛?/h2>
       <p className="text-slate-500 text-lg leading-relaxed">
         {sessionType === 'smart_review' 
-          ? "恭喜！今日的智能复习卡片已全部清空，您的记忆链接变得更牢固了。" 
-          : "本轮学习卡片已全部过完，大脑需要休息来巩固神经链接。"}
+          ? "鎭枩锛佷粖鏃ョ殑鏅鸿兘澶嶄範鍗＄墖宸插叏閮ㄦ竻绌猴紝鎮ㄧ殑璁板繂閾炬帴鍙樺緱鏇寸墷鍥轰簡銆? 
+          : "鏈疆瀛︿範鍗＄墖宸插叏閮ㄨ繃瀹岋紝澶ц剳闇€瑕佷紤鎭潵宸╁浐绁炵粡閾炬帴銆?}
       </p>
       <div className="pt-6">
         <button
           onClick={() => setView('home')}
           className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl w-full transition-colors"
         >
-          返回首页
+          杩斿洖棣栭〉
         </button>
       </div>
     </div>
@@ -1911,7 +2693,7 @@ export default function VocabularyMaster() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
-      <header className="px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 flex justify-between items-center">
+      <header className="px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 flex justify-between items-center gap-4">
         <div 
           className="flex items-center gap-2 font-bold text-lg tracking-tight cursor-pointer"
           onClick={() => setView('home')}
@@ -1919,22 +2701,76 @@ export default function VocabularyMaster() {
           <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
             <Book className="w-5 h-5" />
           </div>
-          单词大师
+          鍗曡瘝澶у笀
         </div>
-        {selectedBook && view !== 'home' && sessionType === 'normal' && (
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
+          {selectedBook && !['home', 'library', 'login', 'register'].includes(view) && sessionType === 'normal' && (
+            <div className="hidden max-w-xs items-center gap-1 truncate rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-500 sm:flex">
+              {ALL_BOOKS[selectedBook]?.name}
+            </div>
+          )}
+          {view !== 'home' && view !== 'library' && view !== 'login' && view !== 'register' && sessionType === 'smart_review' && (
+            <div className="hidden items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-600 sm:flex">
+              <CalendarClock className="w-4 h-4"/> 鏅鸿兘澶嶄範
+            </div>
+          )}
+          {authLoading ? (
+            <div className="text-sm text-slate-400">璐︽埛鍔犺浇涓?..</div>
+          ) : authUser ? (
+            <>
+              <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 sm:flex">
+                <UserRound className="h-4 w-4 text-indigo-500" />
+                {authUser.username || authUser.email}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
+              >
+                <LogOut className="h-4 w-4" />
+                閫€鍑?              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setAuthError('');
+                  setView('login');
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
+              >
+                <LogIn className="h-4 w-4" />
+                鐧诲綍
+              </button>
+              <button
+                onClick={() => {
+                  setAuthError('');
+                  setView('register');
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
+              >
+                <UserPlus className="h-4 w-4" />
+                娉ㄥ唽
+              </button>
+            </>
+          )}
+        </div>
+        {false && selectedBook && !['home', 'library'].includes(view) && sessionType === 'normal' && (
           <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-1 max-w-[150px] sm:max-w-xs truncate">
             {ALL_BOOKS[selectedBook]?.name}
           </div>
         )}
-        {view !== 'home' && sessionType === 'smart_review' && (
+        {false && view !== 'home' && view !== 'library' && sessionType === 'smart_review' && (
           <div className="text-sm font-medium text-emerald-600 bg-emerald-100 px-3 py-1.5 rounded-full flex items-center gap-1">
-            <CalendarClock className="w-4 h-4"/> 智能复习
+            <CalendarClock className="w-4 h-4"/> 鏅鸿兘澶嶄範
           </div>
         )}
       </header>
 
       <main className="flex-1 flex flex-col justify-center p-4 sm:p-6 pb-20 relative z-10">
         {view === 'home' && renderHome()}
+        {view === 'library' && renderLibrary()}
+        {view === 'login' && renderAuthPanel('login')}
+        {view === 'register' && renderAuthPanel('register')}
         {view === 'learning' && renderLearning()}
         {view === 'spelling' && renderSpelling()}
         {view === 'sentence_practice' && renderSentencePractice()}
@@ -1948,25 +2784,23 @@ export default function VocabularyMaster() {
               <Flame className="h-7 w-7" />
             </div>
             <div className="text-center">
-              <h3 className="text-2xl font-black text-slate-900">先休息一会儿</h3>
+              <h3 className="text-2xl font-black text-slate-900">鍏堜紤鎭竴浼氬効</h3>
               <p className="mt-3 text-sm leading-7 text-slate-500">
-                这一轮 10 个单词已经完成。现在可以先回首页休息，也可以继续学习下一批
-                {nextBatchPreviewCount > 0 ? ` ${nextBatchPreviewCount} ` : ' '}
-                个单词。
-              </p>
+                杩欎竴杞?10 涓崟璇嶅凡缁忓畬鎴愩€傜幇鍦ㄥ彲浠ュ厛鍥為椤典紤鎭紝涔熷彲浠ョ户缁涔犱笅涓€鎵?                {nextBatchPreviewCount > 0 ? ` ${nextBatchPreviewCount} ` : ' '}
+                涓崟璇嶃€?              </p>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={handleTakeBreak}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
-                休息一会儿
+                浼戞伅涓€浼氬効
               </button>
               <button
                 onClick={handleContinueLearning}
                 className="rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
               >
-                继续学习
+                缁х画瀛︿範
               </button>
             </div>
           </div>
@@ -1987,3 +2821,6 @@ export default function VocabularyMaster() {
     </div>
   );
 }
+
+
+

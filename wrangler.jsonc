@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "word-learning",
+  "compatibility_date": "2026-04-16",
+  "pages_build_output_dir": "dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vocab-db",
+      "database_id": "42ba25e8-5d08-453f-823d-85493665fc51",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -76,3 +76,94 @@ src/data/cet6.phonetic.txt
 ```bash
 python scripts/enrich_phonetics_from_ipa.py path/to/en_US.txt src/data/cet4.txt src/data/cet6.txt --in-place
 ```
+
+## D1 用户系统
+
+项目现在已经接入 Cloudflare Pages Functions + D1。
+
+### D1 绑定
+
+- binding: `DB`
+- database_name: `vocab-db`
+- database_id: `42ba25e8-5d08-453f-823d-85493665fc51`
+- 配置文件: [`wrangler.jsonc`](./wrangler.jsonc)
+
+### Migration
+
+初始化表结构在：
+
+- [`migrations/0001_auth_and_user_data.sql`](./migrations/0001_auth_and_user_data.sql)
+
+包含这些表：
+
+- `users`
+- `sessions`
+- `user_books`
+- `user_progress`
+- `user_favorites`
+- `user_settings`
+
+### 本地开发
+
+先安装依赖：
+
+```bash
+npm install
+```
+
+应用 D1 migration：
+
+```bash
+npx wrangler d1 migrations apply vocab-db --local
+```
+
+启动前端开发服务器：
+
+```bash
+npm run dev
+```
+
+如果要在本地联调 Pages Functions + D1，可以构建后运行：
+
+```bash
+npm run build
+npx wrangler pages dev dist
+```
+
+### 部署前应用线上 migration
+
+```bash
+npx wrangler d1 migrations apply vocab-db --remote
+```
+
+然后再重新部署 Cloudflare Pages。
+
+### 认证与用户数据接口
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/user/books`
+- `POST /api/user/books`
+- `DELETE /api/user/books/:bookId`
+- `GET /api/user/progress`
+- `POST /api/user/progress`
+- `PATCH /api/user/progress/:id`
+- `GET /api/user/favorites`
+- `POST /api/user/favorites`
+- `DELETE /api/user/favorites/:id`
+- `GET /api/user/settings`
+- `PATCH /api/user/settings`
+
+### 现在如何测试
+
+1. 打开站点右上角的“注册”。
+2. 注册后会自动登录。
+3. 去“词书库”把词书加入首页。
+4. 回首页，确认“我的词书”已经变化。
+5. 开始学习一轮单词。
+6. 刷新页面后重新登录，确认：
+   - 我的词书仍然存在
+   - 学习进度仍然存在
+7. 点击“退出”，确认 session 被清除。
