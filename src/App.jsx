@@ -1834,7 +1834,7 @@ export default function VocabularyMaster() {
                   <button 
                     onClick={(e) => handleRemoveOrDeleteBook(e, book.id)}
                     className="absolute top-4 right-4 p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors z-10"
-                    title={customBooks[book.id] ? "鍒犻櫎鑷畾涔夎瘝搴? : "浠庨椤电Щ闄?}
+                    title={customBooks[book.id] ? "Delete custom book" : "Remove from home"}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
