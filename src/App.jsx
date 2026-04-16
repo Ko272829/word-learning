@@ -169,6 +169,7 @@ const CHUNKED_BUILT_IN_BOOKS = {
 };
 
 const EXAMPLE_BATCH_SIZE = 20;
+const EXAMPLE_REQUEST_TIMEOUT_MS = 15000;
 const REVIEW_SENTENCE_MISTAKE_THRESHOLD = 2;
 const NORMAL_SESSION_BATCH_SIZE = 10;
 const LEARNING_PAGE_DEMO_WORDS = [
@@ -208,6 +209,44 @@ const normalizeBookName = (name) => String(name || '').trim().toLowerCase().repl
 const normalizeExampleKey = (word, meaning) =>
   `${String(word || '').trim().toLowerCase()}__${String(meaning || '').trim()}`;
 
+const safeReadStorageJson = (key, fallbackValue) => {
+  if (typeof window === 'undefined') return fallbackValue;
+
+  try {
+    const saved = window.localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallbackValue;
+  } catch (error) {
+    console.warn(`Failed to read localStorage key: ${key}`, error);
+    return fallbackValue;
+  }
+};
+
+const safeWriteStorageJson = (key, value) => {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    console.warn(`Failed to write localStorage key: ${key}`, error);
+    return false;
+  }
+};
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = EXAMPLE_REQUEST_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
+
 const mergeBookWords = (existingWords, incomingWords, bookId) => {
   const mergedMap = new Map();
 
@@ -244,36 +283,24 @@ export default function VocabularyMaster() {
   const [exampleGenerationState, setExampleGenerationState] = useState({ bookId: null, completed: 0, total: 0 });
   
   // 1. 本地存储：复习进度持久化
-  const [userProgress, setUserProgress] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocab_master_progress');
-      if (saved) return JSON.parse(saved);
-    }
-    return {};
-  });
+  const [userProgress, setUserProgress] = useState(() =>
+    safeReadStorageJson('vocab_master_progress', {})
+  );
 
   // 2. 本地存储：导入的自定义词库持久化
-  const [customBooks, setCustomBooks] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocab_master_custom_books');
-      if (saved) return JSON.parse(saved);
-    }
-    return {};
-  });
-  const [hiddenBookIds, setHiddenBookIds] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('vocab_master_hidden_books');
-      if (saved) return JSON.parse(saved);
-    }
-    return [];
-  });
+  const [customBooks, setCustomBooks] = useState(() =>
+    safeReadStorageJson('vocab_master_custom_books', {})
+  );
+  const [hiddenBookIds, setHiddenBookIds] = useState(() =>
+    safeReadStorageJson('vocab_master_hidden_books', [])
+  );
 
   useEffect(() => {
-    localStorage.setItem('vocab_master_progress', JSON.stringify(userProgress));
+    safeWriteStorageJson('vocab_master_progress', userProgress);
   }, [userProgress]);
 
   useEffect(() => {
-    localStorage.setItem('vocab_master_hidden_books', JSON.stringify(hiddenBookIds));
+    safeWriteStorageJson('vocab_master_hidden_books', hiddenBookIds);
   }, [hiddenBookIds]);
 
   const ALL_BOOKS = Object.fromEntries(
@@ -288,7 +315,7 @@ export default function VocabularyMaster() {
   const addCustomBook = (book) => {
     setCustomBooks(prev => {
       const next = { ...prev, [book.id]: book };
-      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      safeWriteStorageJson('vocab_master_custom_books', next);
       return next;
     });
     setHiddenBookIds(prev => prev.filter(id => id !== book.id));
@@ -320,7 +347,7 @@ export default function VocabularyMaster() {
         };
       }
 
-      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      safeWriteStorageJson('vocab_master_custom_books', next);
       return next;
     });
 
@@ -331,7 +358,7 @@ export default function VocabularyMaster() {
   const saveBookOverride = (book) => {
     setCustomBooks(prev => {
       const next = { ...prev, [book.id]: book };
-      localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+      safeWriteStorageJson('vocab_master_custom_books', next);
       return next;
     });
   };
@@ -352,14 +379,22 @@ export default function VocabularyMaster() {
 
     for (let start = 0; start < targetWords.length; start += EXAMPLE_BATCH_SIZE) {
       const batch = targetWords.slice(start, start + EXAMPLE_BATCH_SIZE);
-      const res = await fetch('/api/generate-examples', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookName: book.name,
-          words: batch.map(({ word, pos, meaning }) => ({ word, pos, meaning }))
-        })
-      });
+      let res;
+      try {
+        res = await fetchWithTimeout('/api/generate-examples', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookName: book.name,
+            words: batch.map(({ word, pos, meaning }) => ({ word, pos, meaning }))
+          })
+        });
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          throw new Error('补例句请求超时，请稍后重试。');
+        }
+        throw error;
+      }
 
       const rawText = await res.text();
       let data = {};
@@ -577,7 +612,7 @@ export default function VocabularyMaster() {
         setCustomBooks(prev => {
           const next = {...prev};
           delete next[bookId];
-          localStorage.setItem('vocab_master_custom_books', JSON.stringify(next));
+          safeWriteStorageJson('vocab_master_custom_books', next);
           return next;
         });
       } else {
