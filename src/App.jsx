@@ -46,7 +46,7 @@ const parseTxt = (text, bookId, bookName) => {
 };
 
 const parseJson = (jsonData, bookId, bookName) => {
-  if (!Array.isArray(jsonData)) throw new Error("JSON 鏍煎紡閿欒: 闇€瑕佹暟缁?);
+  if (!Array.isArray(jsonData)) throw new Error("JSON data must be an array");
   const words = jsonData.map((item, index) => {
     const word = item.word || item.name || Object.keys(item)[0] || "unknown";
     let meaning = item.meaning || item.trans || "";
@@ -2821,6 +2821,7 @@ export default function VocabularyMaster() {
     </div>
   );
 }
+
 
 
 
