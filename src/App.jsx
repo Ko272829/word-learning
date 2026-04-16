@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight, Search, LogIn, LogOut, UserRound, UserPlus } from 'lucide-react';
+import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, PlayCircle, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight, Search, LogIn, LogOut, UserRound, UserPlus } from 'lucide-react';
 import cet4Raw from './data/cet4.txt?raw';
 import cet6Raw from './data/cet6.txt?raw';
 
@@ -1531,10 +1531,10 @@ export default function VocabularyMaster() {
   // --- UI Views ---
   const renderAuthPanel = (mode = 'login') => {
     const isLogin = mode === 'login';
-    const title = isLogin ? 'Login' : 'Create account';
+    const title = isLogin ? '登录' : '注册账号';
     const description = isLogin
-      ? 'After login, your books, progress and settings will be saved to D1 first.'
-      : 'Create an account to bind your books and study progress to the current user.';
+      ? '登录后，你的词书、学习进度和设置会优先同步到 D1。'
+      : '创建账号后，可以将你的词书和学习进度绑定到当前用户。';
 
     return (
       <div className="max-w-md mx-auto w-full animate-in fade-in zoom-in-95 duration-500">
@@ -1550,18 +1550,18 @@ export default function VocabularyMaster() {
           <form onSubmit={isLogin ? handleLoginSubmit : handleRegisterSubmit} className="mt-8 space-y-4">
             {!isLogin && (
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Username</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">用户名</label>
                 <input
                   type="text"
                   value={registerForm.username}
                   onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  placeholder="Optional"
+                  placeholder="选填"
                 />
               </div>
             )}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">邮箱</label>
               <input
                 type="email"
                 value={isLogin ? loginForm.email : registerForm.email}
@@ -1576,7 +1576,7 @@ export default function VocabularyMaster() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">密码</label>
               <input
                 type="password"
                 value={isLogin ? loginForm.password : registerForm.password}
@@ -1586,7 +1586,7 @@ export default function VocabularyMaster() {
                     : setRegisterForm((prev) => ({ ...prev, password: e.target.value }))
                 )}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                placeholder="At least 6 characters"
+                placeholder="至少 6 位字符"
                 required
               />
             </div>
@@ -1602,7 +1602,7 @@ export default function VocabularyMaster() {
               disabled={authSubmitting}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {authSubmitting ? 'Submitting...' : isLogin ? 'Login' : 'Register'}
+              {authSubmitting ? '提交中...' : isLogin ? '登录' : '注册'}
             </button>
           </form>
 
@@ -1614,7 +1614,7 @@ export default function VocabularyMaster() {
               }}
               className="font-medium transition hover:text-slate-800"
             >
-              Continue as guest
+              游客模式继续
             </button>
             <button
               onClick={() => {
@@ -1623,7 +1623,7 @@ export default function VocabularyMaster() {
               }}
               className="font-semibold text-indigo-600 transition hover:text-indigo-700"
             >
-              {isLogin ? 'Create account' : 'Back to login'}
+              {isLogin ? '去注册' : '返回登录'}
             </button>
           </div>
         </div>
@@ -1881,21 +1881,21 @@ export default function VocabularyMaster() {
                     </div>
                     <div className="grid gap-2 text-sm text-slate-500">
                       <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                        <span>Examples</span>
+                        <span>例句</span>
                         <span className="font-semibold text-slate-700">
-                          {missingExamplesCount === 0 ? 'Ready' : `${missingExamplesCount} missing`}
+                          {missingExamplesCount === 0 ? '已就绪' : `缺失 ${missingExamplesCount} 条`}
                         </span>
                       </div>
                       <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                        <span>Phonetics</span>
+                        <span>音标</span>
                         <span className="font-semibold text-slate-700">
-                          {missingPhoneticsCount === 0 ? 'Ready' : `${missingPhoneticsCount} missing`}
+                          {missingPhoneticsCount === 0 ? '已就绪' : `缺失 ${missingPhoneticsCount} 条`}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 pt-2 text-sm font-semibold text-indigo-600">
                       <PlayCircle className="h-5 w-5" />
-                      Start learning
+                      开始学习
                     </div>
                   </div>
                 </div>
@@ -1952,14 +1952,14 @@ export default function VocabularyMaster() {
                 <Book className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Book Library</p>
-                <p className="text-xs text-slate-500">All available books are managed here in one place.</p>
+                <p className="text-sm font-semibold text-slate-900">词书库</p>
+                <p className="text-xs text-slate-500">所有可用词书都在这里统一管理</p>
               </div>
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">Choose from the library, then add books to home.</h1>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">从词书库选择，再加入首页。</h1>
               <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
-                Search, filter, and add the books you really want to study. Once added, they will appear on the home page immediately.
+                搜索、筛选并挑选你真正要学的词书。加入后，首页会立刻同步显示。
               </p>
             </div>
           </div>
@@ -1967,7 +1967,7 @@ export default function VocabularyMaster() {
             onClick={() => setView('home')}
             className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-indigo-600"
           >
-            Back to My Books
+            返回我的词书
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -1980,7 +1980,7 @@ export default function VocabularyMaster() {
                 type="text"
                 value={librarySearch}
                 onChange={(e) => setLibrarySearch(e.target.value)}
-                placeholder="Search books by name, category, or description"
+                placeholder="按词书名、分类或描述搜索"
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
               />
             </div>
@@ -2001,7 +2001,7 @@ export default function VocabularyMaster() {
           </div>
           {!authUser && (
             <p className="mt-4 text-sm text-slate-500">
-              You are in guest mode. You can still add books to home and keep them locally. After logging in, they can be synced to your account.
+              当前是游客模式。你仍然可以把词书加入首页并保存在本地，登录后可同步到账号。
             </p>
           )}
         </div>
@@ -2028,7 +2028,7 @@ export default function VocabularyMaster() {
                   <div className="mb-3 flex flex-wrap gap-2">
                     <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{category}</span>
                     {isSelected && (
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">Added to home</span>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">已加入首页</span>
                     )}
                   </div>
                   <h3 className="text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
@@ -2039,14 +2039,14 @@ export default function VocabularyMaster() {
                     onClick={() => toggleBookSelection(book.id)}
                     className={`flex-1 rounded-2xl px-5 py-4 text-sm font-bold transition ${isSelected ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700'}`}
                   >
-                    {isSelected ? 'Remove from home' : 'Add to home'}
+                    {isSelected ? '从首页移除' : '加入首页'}
                   </button>
                   {isSelected && (
                     <button
                       onClick={() => startLearning(book.id)}
                       className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                     >
-                      Start learning
+                      开始学习
                     </button>
                   )}
                 </div>
@@ -2056,12 +2056,76 @@ export default function VocabularyMaster() {
           {filteredBooks.length === 0 && (
             <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
               <Search className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-              <h3 className="text-xl font-black text-slate-800">No books match the current filter</h3>
+              <h3 className="text-xl font-black text-slate-800">没有找到符合条件的词书</h3>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-                Try adjusting the search term or category filter. You can also import your own local book.
+                试试调整搜索词或切换分类筛选，也可以上传你自己的本地词书。
               </p>
             </div>
           )}
+        </div>
+
+        <div className="bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100">
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Download className="w-5 h-5 text-indigo-600" />
+            内置词书与扩充词库
+          </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            这里统一管理所有可用词书。四级核心与六级进阶已内置在应用中，你也可以继续上传自己的本地词书，上传后会自动加入首页，同时出现在词书库里。
+          </p>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              已内置四级核心
+            </div>
+            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
+              <Book className="w-5 h-5 mr-2" />
+              已内置六级进阶
+            </div>
+            <label className="flex-1 min-w-[200px] px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-sm">
+              <Upload className="w-5 h-5 mr-2" />
+              上传本地 .txt / .json
+              <input type="file" accept=".txt,.json" className="hidden" onChange={handleFileUpload} />
+            </label>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
+          <h3 className="text-2xl font-black text-slate-900 mb-3 flex items-center gap-3">
+            <Sparkles className="w-7 h-7 text-indigo-500" />
+            AI 智能生成词书
+          </h3>
+          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+            输入一个主题，系统会从现有词库里筛选合适的候选词，生成新的专题词书，并自动加入首页。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <input
+              type="text"
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAiGenerateBook();
+              }}
+              placeholder="如：咖啡馆用语、大厂面试、旅游英语..."
+              className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 bg-white text-lg outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all"
+            />
+            <button
+              onClick={handleAiGenerateBook}
+              disabled={!aiTopic.trim() || isAiGenerating}
+              className="px-8 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 min-w-[160px]"
+            >
+              {isAiGenerating ? (
+                <>
+                  <RotateCcw className="w-5 h-5 animate-spin" />
+                  生成中
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-5 h-5" />
+                  生成
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -2234,7 +2298,7 @@ export default function VocabularyMaster() {
           <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
             <Book className="w-5 h-5" />
           </div>
-          Word Master
+          单词大师
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
           {selectedBook && !['home', 'library', 'login', 'register'].includes(view) && sessionType === 'normal' && (
@@ -2244,11 +2308,11 @@ export default function VocabularyMaster() {
           )}
           {view !== 'home' && view !== 'library' && view !== 'login' && view !== 'register' && sessionType === 'smart_review' && (
             <div className="hidden items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-600 sm:flex">
-              <CalendarClock className="w-4 h-4"/> Smart Review
+              <CalendarClock className="w-4 h-4"/> 智能复习
             </div>
           )}
           {authLoading ? (
-            <div className="text-sm text-slate-400">Loading account...</div>
+            <div className="text-sm text-slate-400">账户加载中...</div>
           ) : authUser ? (
             <>
               <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 sm:flex">
@@ -2260,7 +2324,7 @@ export default function VocabularyMaster() {
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                退出
               </button>
             </>
           ) : (
@@ -2273,7 +2337,7 @@ export default function VocabularyMaster() {
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
               >
                 <LogIn className="h-4 w-4" />
-                Log in
+                登录
               </button>
               <button
                 onClick={() => {
@@ -2283,7 +2347,7 @@ export default function VocabularyMaster() {
                 className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
               >
                 <UserPlus className="h-4 w-4" />
-                Register
+                注册
               </button>
             </>
           )}
@@ -2295,7 +2359,7 @@ export default function VocabularyMaster() {
         )}
         {false && view !== 'home' && view !== 'library' && sessionType === 'smart_review' && (
           <div className="text-sm font-medium text-emerald-600 bg-emerald-100 px-3 py-1.5 rounded-full flex items-center gap-1">
-            <CalendarClock className="w-4 h-4"/> Smart Review
+            <CalendarClock className="w-4 h-4"/> 智能复习
           </div>
         )}
       </header>
