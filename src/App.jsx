@@ -934,7 +934,7 @@ export default function VocabularyMaster() {
     if (view === 'learning' && learnStage === 1 && activeLearningQueue[currentWordIndex]) {
       playWordAudio(activeLearningQueue[currentWordIndex].word);
     }
-  }, [currentWordIndex, view, learnStage]);
+  }, [currentWordIndex, view, learnStage, activeLearningQueue]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -951,9 +951,9 @@ export default function VocabularyMaster() {
         else parsedBook = parseTxt(content, bookId, bookName);
         
         addCustomBook(parsedBook);
-        alert(`馃帀 瀵煎叆鎴愬姛锛佸凡娣诲姞璇嶅簱锛?{bookName} (${parsedBook.words.length}璇?`);
+        alert(`Import succeeded: ${bookName} (${parsedBook.words.length} words)`);
       } catch (err) {
-        alert("瀵煎叆澶辫触锛屾枃浠舵牸寮忔湁璇? " + err.message);
+        alert(`Import failed: ${err.message}`);
       }
     };
     reader.readAsText(file);
@@ -1193,7 +1193,7 @@ export default function VocabularyMaster() {
           : `AI book created successfully: ${topic} book with ${data.book.words.length} words.`
       );
     } catch (err) {
-      alert(`AI 鐢熸垚澶辫触锛?{err.message}`);
+      alert(`AI generation failed: ${err.message}`);
     } finally {
       setIsAiGenerating(false);
     }
@@ -1324,7 +1324,7 @@ export default function VocabularyMaster() {
           }
         }
       } catch (error) {
-        alert(`渚嬪彞鍑嗗澶辫触锛?{error.message}`);
+        alert(`Preparing examples failed: ${error.message}`);
       } finally {
         setExampleGenerationState({ bookId: null, completed: 0, total: 0 });
         setIsPreparingReview(false);
@@ -1350,45 +1350,41 @@ export default function VocabularyMaster() {
   // 鎷煎啓娴嬮獙鎻愪氦 (寮哄埗瑕佹眰鎷煎啓姝ｇ‘鍚庢墠杩涘叆涓嬩竴涓?
   const handleSpellingSubmit = (e) => {
     e.preventDefault();
-    // 浠呭湪瀹屽叏姝ｇ‘鏃堕攣姝绘彁浜?
-    if (!spellingInput.trim() || spellingFeedback === 'correct') return;
-
     const currentWord = spellingQueue[currentSpellingIndex];
-    const targetWord = currentWord.word.toLowerCase();
-    
-    if (spellingInput.trim().toLowerCase() === targetWord) {
-      setSpellingFeedback('correct');
-      playWordAudio(targetWord, { allowUnlock: true });
-      
+    if (!currentWord || !spellingInput.trim()) return;
+
+    const isCorrect = spellingInput.trim().toLowerCase() === currentWord.word.toLowerCase();
+
+    if (isCorrect) {
       const hasMistakeOnThisAttempt = currentWordMistakes > 0;
-      // 鍙湁浠庢潵娌″湪姝?Session 鎷奸敊杩囷紝涓旀湰娆′篃娌℃湁杈撻敊锛屾墠鍒ゅ畾涓烘帉鎻?Grade 4)
-      const grade = (!hasMistakeOnThisAttempt && !currentWord._spMistake) ? 4 : 1;
-      const prevProgress = userProgress[currentWord.id] || { repetition: 0, interval: 0, easeFactor: 2.5 };
-      const newProgress = calculateSM2(grade, prevProgress.repetition, prevProgress.interval, prevProgress.easeFactor);
-      
+      const grade = hasMistakeOnThisAttempt ? 3 : 5;
+      const oldProgress = userProgress[currentWord.id] || { repetition: 0, interval: 0, easeFactor: 2.5 };
+      const sm2Result = calculateSM2(grade, oldProgress.repetition, oldProgress.interval, oldProgress.easeFactor);
+      const newProgress = { ...oldProgress, ...sm2Result, status: 'learned', lastReviewedAt: Date.now() };
+
       setUserProgress(prev => ({ ...prev, [currentWord.id]: newProgress }));
       persistProgressToD1(currentWord.id, newProgress);
+      setSpellingFeedback('correct');
 
-      // 濡傛灉鏈鎵撻敊浜嗭紝鍔犲叆闃熷垪鏈熬閲嶆柊寰幆
+      const nextQueue = hasMistakeOnThisAttempt ? [...spellingQueue, { ...currentWord, _spMistake: true }] : spellingQueue;
       if (hasMistakeOnThisAttempt) {
-        setSpellingQueue(prev => [...prev, { ...currentWord, _spMistake: true }]);
+        setSpellingQueue(nextQueue);
       }
 
-      const nextQueueLength = hasMistakeOnThisAttempt ? spellingQueue.length + 1 : spellingQueue.length;
-
       setTimeout(() => {
-        if (currentSpellingIndex + 1 < nextQueueLength) {
+        if (currentSpellingIndex + 1 < nextQueue.length) {
           setCurrentSpellingIndex(prev => prev + 1);
           setSpellingInput('');
           setSpellingFeedback(null);
           setCurrentWordMistakes(0);
         } else {
-          proceedToSentencePractice(spellingQueue);
+          proceedToSentencePractice(nextQueue);
         }
       }, 1000);
     } else {
       setSpellingFeedback('incorrect');
-      playWordAudio(currentWord.word, { allowUnlock: true }); // 鎷奸敊鏃惰嚜鍔ㄦ挱鏀捐闊宠緟鍔╄蹇?      setCurrentWordMistakes(prev => prev + 1); // 璁板綍閿欒锛岃Е鍙戝惊鐜満鍒?
+      playWordAudio(currentWord.word, { allowUnlock: true });
+      setCurrentWordMistakes(prev => prev + 1);
       if (sessionType === 'smart_review') {
         setSpellingQueue(prev => prev.map((item, index) => (
           index === currentSpellingIndex
@@ -1399,12 +1395,12 @@ export default function VocabularyMaster() {
     }
   };
 
-  // 渚嬪彞浣跨敤鎻愮ず鍚庡姞鍏ラ槦灏惧惊鐜?  const handleShowSentenceAnswer = () => {
+  // Add the sentence back to the queue after using a hint.
+  const handleShowSentenceAnswer = () => {
     setShowSentenceAnswer(true);
     setUsedHint(true);
     setSentenceHadMistake(true);
   };
-
   const handleSentenceSubmit = () => {
     if (!sentenceInput.trim()) return;
 
