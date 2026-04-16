@@ -1903,10 +1903,8 @@ export default function VocabularyMaster() {
             })
           )}
         </div>
-      </div>
-    );
-  };
-        <div className="mt-8 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
+
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
             <Save className="w-5 h-5 text-slate-600" />
             项目数据备份与恢复
