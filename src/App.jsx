@@ -601,7 +601,7 @@ export default function VocabularyMaster() {
     }
 
     if (showCompletionAlert) {
-      alert(`銆?{book.name}銆嬩緥鍙ヨˉ鍏呭畬鎴愶紝鐜板湪鍙互杩涜鎷煎啓鍙ュ瓙缁冧範浜嗐€俙);
+      alert(`Examples for ${book.name} are ready. Sentence practice is now available.`);
     }
 
     return workingBook;
