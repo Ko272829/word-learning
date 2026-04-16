@@ -929,11 +929,11 @@ export default function VocabularyMaster() {
     if (view === 'sentence_practice' && sentenceInputRef.current) sentenceInputRef.current.focus();
   }, [view, currentSpellingIndex, spellingFeedback, currentSentenceIndex, showSentenceAnswer]);
 
-  // 鑷姩鎾斁瀛︿範闃舵涓€鐨勫崟璇嶉煶棰?  useEffect(() => {
+  // Automatically play the word audio when stage 1 opens.
+  useEffect(() => {
     if (view === 'learning' && learnStage === 1 && activeLearningQueue[currentWordIndex]) {
       playWordAudio(activeLearningQueue[currentWordIndex].word);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordIndex, view, learnStage]);
 
   const handleFileUpload = (e) => {
