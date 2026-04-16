@@ -569,7 +569,7 @@ export default function VocabularyMaster() {
       }
 
       if (!res.ok) {
-        throw new Error(data.error || `琛ヤ緥鍙ュけ璐ワ紙HTTP ${res.status}锛塦);
+        throw new Error(data.error || `Example generation failed (HTTP ${res.status})`);
       }
 
       const examplesMap = new Map(
@@ -1182,15 +1182,15 @@ export default function VocabularyMaster() {
       }
 
       if (!res.ok) {
-        throw new Error(data.error || `鐢熸垚澶辫触锛圚TTP ${res.status}锛塦);
+        throw new Error(data.error || `Book generation failed (HTTP ${res.status})`);
       }
 
       const merged = addOrMergeAiBook(data.book, topic);
       setAiTopic('');
       alert(
         merged
-          ? `馃帀 AI 璇嶄功宸插悎骞跺埌锛?{topic}璇嶄功\n鏈鏂板鎴栬ˉ鍏呬簡 ${data.book.words.length} 涓€欓€夎瘝銆俙
-          : `馃帀 AI 璇嶄功鐢熸垚鎴愬姛锛?{topic}璇嶄功\n宸茬敓鎴?${data.book.words.length} 涓崟璇嶃€俙
+          ? `AI book merged into ${topic} book. Added or refreshed ${data.book.words.length} candidate words.`
+          : `AI book created successfully: ${topic} book with ${data.book.words.length} words.`
       );
     } catch (err) {
       alert(`AI 鐢熸垚澶辫触锛?{err.message}`);
@@ -1858,9 +1858,9 @@ export default function VocabularyMaster() {
                   </div>
                   <div className="relative z-10 mt-5 rounded-2xl bg-slate-50/90 p-4 ring-1 ring-slate-100">
                     <p className="text-xs leading-6 text-slate-500">
-                      {missingExamplesCount === 0 ? '宸插甫瀹屾暣渚嬪彞' : `澶嶄範鏃惰嚜鍔ㄨˉ榻?${missingExamplesCount} 鏉′緥鍙}
+                      {missingExamplesCount === 0 ? "Examples ready" : `Review will auto-fill ${missingExamplesCount} examples`}
                       {' 路 '}
-                      {missingPhoneticsCount === 0 ? '宸插甫瀹屾暣闊虫爣' : `杩樼己 ${missingPhoneticsCount} 鏉￠煶鏍嘸}
+                      {missingPhoneticsCount === 0 ? "Phonetics ready" : `${missingPhoneticsCount} phonetics missing`}
                     </p>
                   </div>
                   <div className="relative z-10 mt-auto w-full pt-6">
