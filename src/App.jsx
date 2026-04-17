@@ -2132,6 +2132,372 @@ export default function VocabularyMaster() {
   };
 
 
+  const renderLearning = () => {
+    const word = activeLearningQueue[currentWordIndex];
+    if (!word) return null;
+
+    const totalUnique = new Set(activeLearningQueue.map((item) => item.id)).size;
+    const remainingUnique = new Set(activeLearningQueue.slice(currentWordIndex).map((item) => item.id)).size;
+    const currentProgress = totalUnique - remainingUnique + 1;
+    const isStage1 = learnStage === 1;
+    const isStage2 = learnStage === 2;
+    const isStage3 = learnStage === 3;
+
+    return (
+      <div className="mx-auto w-full max-w-5xl animate-in slide-in-from-bottom-8 duration-500">
+        <div className="mb-6 grid gap-4 rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur md:grid-cols-[auto_1fr_auto] md:items-center">
+          <button
+            onClick={() => setView('home')}
+            className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
+          >
+            <RotateCcw className="h-4 w-4" />
+            返回首页
+          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {[
+              { step: 1, label: '先听发音' },
+              { step: 2, label: '理解词义' },
+              { step: 3, label: '完成确认' },
+            ].map((item) => {
+              const active = learnStage === item.step;
+              return (
+                <div
+                  key={item.step}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
+                    active
+                      ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-[0_0_0_4px_rgba(99,102,241,0.12)]'
+                      : 'bg-slate-50 text-slate-400 ring-1 ring-slate-100'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+                      active ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 ring-1 ring-slate-200'
+                    }`}
+                  >
+                    {item.step}
+                  </span>
+                  {item.label}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <div className="hidden h-2 w-28 overflow-hidden rounded-full bg-slate-100 sm:block">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500"
+                style={{ width: `${Math.max(8, Math.round((currentProgress / totalUnique) * 100))}%` }}
+              />
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
+              {currentProgress} <span className="font-medium text-slate-400">/ {totalUnique}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)]">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/90 px-6 py-4">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-indigo-600 ring-1 ring-slate-200">
+                <GraduationCap className="h-4 w-4" />
+                学习阶段
+              </div>
+              <div className="text-sm font-medium text-slate-400">剩余 {remainingUnique} 词</div>
+            </div>
+
+            <div className="flex min-h-[620px] flex-col justify-between p-8 sm:p-12">
+              <div className="flex-1">
+                <div className="flex h-full flex-col items-center text-center">
+                  <div className="mt-2 inline-flex items-center rounded-full bg-slate-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400 ring-1 ring-slate-100">
+                    {isStage1 ? 'Listen First' : isStage2 ? 'Meaning Input' : 'Final Check'}
+                  </div>
+                  <h2 className="mt-7 text-5xl font-black tracking-tight text-slate-950 sm:text-[5rem]">{word.word}</h2>
+                  <button
+                    onClick={() => playWordAudio(word.word, { allowUnlock: true })}
+                    className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-600 transition hover:bg-slate-100"
+                  >
+                    <Volume2 className="h-5 w-5 text-indigo-500" />
+                    <span className="text-lg font-mono tracking-wide">{word.phonetic || '/暂无音标/'}</span>
+                  </button>
+
+                  <div className="my-10 h-px w-full max-w-xl bg-slate-100" />
+
+                  {(isStage2 || isStage3) && (
+                    <div className="w-full max-w-2xl space-y-8 text-left animate-in fade-in duration-300">
+                      <div className="flex items-start gap-4 rounded-[1.75rem] bg-slate-50/90 p-6 ring-1 ring-slate-100">
+                        {word.pos && (
+                          <span className="mt-0.5 shrink-0 rounded-lg bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-600 ring-1 ring-indigo-100">
+                            {word.pos}
+                          </span>
+                        )}
+                        <p className="text-2xl font-semibold leading-snug text-slate-800">{word.meaning}</p>
+                      </div>
+
+                      {word.exampleEn && (
+                        <div className="flex items-start gap-4 rounded-[1.75rem] border border-indigo-100 bg-indigo-50/60 p-6">
+                          <Quote className="mt-1 h-5 w-5 shrink-0 text-slate-300" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="text-lg leading-8 text-slate-700">{word.exampleEn}</p>
+                              <button
+                                onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
+                                className="mt-0.5 shrink-0 rounded-full p-2 text-indigo-400 transition hover:bg-white/70 hover:text-indigo-600"
+                              >
+                                <Play className="h-4 w-4" />
+                              </button>
+                            </div>
+                            {word.exampleZh && (
+                              <p className="mt-3 text-sm font-medium leading-6 text-slate-500">{word.exampleZh}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-10 border-t border-slate-100 pt-6">
+                {isStage1 && (
+                  <button
+                    onClick={handleToStage2}
+                    className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                  >
+                    查看词义
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                )}
+                {isStage2 && (
+                  <button
+                    onClick={handleToStage3}
+                    className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                  >
+                    进入确认
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                )}
+                {isStage3 && (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <button
+                      onClick={() => handleLearningDecision('forgot')}
+                      className="rounded-[1.25rem] bg-slate-900 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
+                    >
+                      不会
+                    </button>
+                    <button
+                      onClick={() => handleLearningDecision('blurred')}
+                      className="rounded-[1.25rem] bg-indigo-600 py-4 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]"
+                    >
+                      模糊
+                    </button>
+                    <button
+                      onClick={() => handleLearningDecision('mastered')}
+                      className="rounded-[1.25rem] bg-emerald-500 py-4 text-base font-bold text-white transition hover:bg-emerald-600 active:scale-[0.98]"
+                    >
+                      掌握
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">当前进度</p>
+              <p className="mt-3 text-4xl font-black text-slate-950">{currentProgress}</p>
+              <p className="mt-2 text-sm text-slate-500">当前正在学习第 {currentProgress} 个词，总任务量 {totalUnique}。</p>
+            </div>
+            <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">阶段说明</p>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                <p><span className="font-semibold text-slate-900">1.</span> 先只看单词和音标，先听发音，不展示词义和例句。</p>
+                <p><span className="font-semibold text-slate-900">2.</span> 再展开词义和例句，完成记忆输入。</p>
+                <p><span className="font-semibold text-slate-900">3.</span> 最后做一次自我判断，不会退回听音，模糊退回记忆，掌握进入下一词。</p>
+              </div>
+            </div>
+            <div className="rounded-[1.8rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">当前单词</p>
+              <p className="mt-3 text-2xl font-black">{word.word}</p>
+              {!isStage1 && <p className="mt-2 text-sm text-slate-300">{word.meaning}</p>}
+              {word.phonetic && (
+                <p className="mt-4 font-mono text-sm text-slate-200">{word.phonetic}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSpelling = () => {
+    const word = spellingQueue[currentSpellingIndex];
+    if (!word) return null;
+
+    const targetWord = word.word;
+    const normalizedInput = spellingInput.toLowerCase();
+    const normalizedTarget = targetWord.toLowerCase();
+    const spellingSlots = targetWord.split('').map((char, index) => {
+      const typedChar = spellingInput[index] || '';
+      const normalizedTypedChar = normalizedInput[index] || '';
+      const isSeparator = char === ' ' || char === '-' || char === "'";
+      const hasTypedChar = typedChar.length > 0;
+      const isCorrectChar = normalizedTypedChar === normalizedTarget[index];
+      const showError = spellingFeedback === 'incorrect' && hasTypedChar && !isCorrectChar;
+
+      return {
+        key: `${char}_${index}`,
+        char,
+        typedChar,
+        isSeparator,
+        isCorrectChar,
+        showError,
+      };
+    });
+
+    const totalUnique = new Set(spellingQueue.map((item) => item.id)).size;
+    const remainingUnique = new Set(spellingQueue.slice(currentSpellingIndex).map((item) => item.id)).size;
+    const currentProgress = totalUnique - remainingUnique + 1;
+
+    const titleText = sessionType === 'smart_review'
+      ? `智能复习拼写 (${currentProgress}/${totalUnique})`
+      : `阶段拼写测试 (${currentProgress}/${totalUnique})`;
+
+    return (
+      <div className="max-w-xl mx-auto w-full animate-in slide-in-from-right-8 duration-500">
+        <div className="text-center mb-8">
+          <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-sm font-bold rounded-full mb-4 flex items-center gap-2 justify-center w-max mx-auto">
+            {sessionType === 'smart_review' ? <CalendarClock className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
+            {titleText}
+          </span>
+          <h2 className="text-2xl font-bold text-slate-800">根据提示拼写出对应的英文单词</h2>
+        </div>
+
+        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
+          <div className="space-y-6 mb-8">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="mt-1 rounded-lg bg-slate-100 p-2 text-slate-500"><Book className="w-4 h-4" /></div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">词义提示</span>
+                  {word.phonetic && (
+                    <p className="mt-1 font-mono text-sm text-slate-500">{word.phonetic}</p>
+                  )}
+                  <p className="mt-1 text-lg font-medium text-slate-800">
+                    {word.pos && <span className="mr-2 text-indigo-600">{word.pos}</span>}
+                    {word.meaning}
+                  </p>
+                </div>
+              </div>
+              {spellingFeedback !== 'correct' && (
+                <button
+                  type="button"
+                  onClick={() => playWordAudio(word.word, { allowUnlock: true })}
+                  className="group -mt-1 shrink-0 rounded-full p-2 text-amber-500 transition-colors hover:bg-amber-100"
+                  title="播放读音提示"
+                >
+                  <Lightbulb className="w-7 h-7 transition-transform group-active:scale-90" />
+                </button>
+              )}
+            </div>
+
+            {word.exampleZh && (
+              <div className="flex items-start gap-3">
+                <div className="mt-1 rounded-lg bg-slate-100 p-2 text-slate-500"><BrainCircuit className="w-4 h-4" /></div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">语境提示</span>
+                  <p className="mt-1 text-lg text-slate-700">{word.exampleZh}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleSpellingSubmit}>
+            <div
+              onClick={() => inputRef.current?.focus()}
+              className={`w-full rounded-2xl border-2 px-5 py-5 transition-all ${
+                spellingFeedback === 'correct'
+                  ? 'border-emerald-500 bg-emerald-50'
+                  : spellingFeedback === 'incorrect'
+                    ? 'border-rose-500 bg-rose-50 animate-shake'
+                    : 'border-slate-200 bg-slate-50 focus-within:border-indigo-500 focus-within:bg-white'
+              }`}
+            >
+              <div className="pointer-events-none flex flex-wrap justify-center gap-2 sm:gap-3">
+                {spellingSlots.map((slot) => (
+                  <div
+                    key={slot.key}
+                    className={`min-w-[2.2rem] border-b-2 text-center font-mono text-2xl leading-[2.6rem] sm:min-w-[2.6rem] ${
+                      slot.isSeparator
+                        ? 'border-transparent text-slate-400'
+                        : slot.showError
+                          ? 'border-rose-400 text-rose-600'
+                          : slot.isCorrectChar && slot.typedChar
+                            ? 'border-emerald-400 text-emerald-700'
+                            : 'border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {slot.typedChar || (slot.isSeparator ? slot.char : '_')}
+                  </div>
+                ))}
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={spellingInput}
+                onChange={(e) => {
+                  setSpellingInput(e.target.value);
+                  setSpellingFeedback(null);
+                }}
+                disabled={spellingFeedback === 'correct'}
+                className="sr-only"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                aria-label="Spelling input"
+              />
+              <p className="mt-4 text-center text-sm text-slate-400">
+                每条横线代表一个字母，输错的位置会标红
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!spellingInput.trim() || spellingFeedback === 'correct'}
+              className="mt-6 flex w-full items-center justify-center rounded-2xl bg-indigo-600 py-4 font-bold text-white transition-all active:scale-[0.98] hover:bg-indigo-700 disabled:opacity-50"
+            >
+              提交校验
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </button>
+          </form>
+
+          {spellingFeedback === 'correct' && (
+            <div className="mt-4 flex justify-end text-emerald-500 animate-in zoom-in">
+              <CheckCircle2 className="h-8 w-8" />
+            </div>
+          )}
+
+          {spellingFeedback === 'incorrect' && (
+            <div className="mt-4 flex items-center rounded-xl bg-rose-50 p-4 text-sm text-rose-700 animate-in slide-in-from-top-2">
+              <XCircle className="mr-2 h-5 w-5 shrink-0" />
+              拼写错误，请修改后重新提交。该词会在稍后重新测试。
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentWordMistakes((prev) => prev + 1);
+                  setSpellingInput(word.word);
+                  setSpellingFeedback(null);
+                }}
+                className="ml-auto shrink-0 font-medium underline hover:text-rose-900"
+              >
+                直接填入答案
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSentencePractice = () => {
     const word = sentenceQueue[currentSentenceIndex];
     if (!word) return null;
