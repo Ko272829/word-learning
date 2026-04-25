@@ -139,10 +139,11 @@ export async function onRequestPost(context) {
       ? parsed.candidateIds.map((item) => String(item).trim()).filter(Boolean)
       : [];
 
+    const bookId = `ai_${Date.now()}`;
     const words = Array.from(new Set(candidateIds))
       .map((candidateId, index) => {
         const item = candidateMap.get(candidateId);
-        return item ? sanitizeWord(item, index, `ai_${Date.now()}`) : null;
+        return item ? sanitizeWord(item, index, bookId) : null;
       })
       .filter(Boolean);
 
@@ -150,12 +151,11 @@ export async function onRequestPost(context) {
       return json({ error: "DeepSeek 没有从候选词库里选出有效单词" }, 502);
     }
 
-    const bookId = `ai_${Date.now()}`;
     return json({
       book: {
         id: bookId,
         name: String(parsed?.bookName || `${cleanTopic}词书`).trim(),
-        words: words.map((item, index) => ({ ...item, id: `${bookId}_${index}` }))
+        words
       }
     });
   } catch (error) {

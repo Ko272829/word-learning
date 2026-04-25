@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, PlayCircle, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight, Search, LogIn, LogOut, UserRound, UserPlus } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Book, Volume2, ArrowRight, CheckCircle2, XCircle, RotateCcw, BrainCircuit, GraduationCap, Check, Play, PlayCircle, Download, Upload, Trash2, Lightbulb, CalendarClock, Keyboard, Save, UploadCloud, Sparkles, Wand2, Flame, TrendingUp, Target, Quote, ChevronRight, Search, LogIn, LogOut, UserRound, UserPlus, Sun, Moon } from 'lucide-react';
 import cet4Raw from './data/cet4.txt?raw';
 import cet6Raw from './data/cet6.txt?raw';
 
@@ -344,6 +344,14 @@ export default function VocabularyMaster() {
   const [userSettings, setUserSettings] = useState({});
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ email: '', password: '', username: '' });
+  const [themeMode, setThemeMode] = useState(() => safeReadStorageJson('vocab_master_theme', 'light'));
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', themeMode === 'dark');
+    safeWriteStorageJson('vocab_master_theme', themeMode);
+  }, [themeMode]);
+
+  const toggleTheme = () => setThemeMode(prev => prev === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     safeWriteStorageJson('vocab_master_progress', userProgress);
@@ -357,9 +365,9 @@ export default function VocabularyMaster() {
     safeWriteStorageJson('vocab_master_selected_books', selectedBookIds);
   }, [selectedBookIds]);
 
-  const ALL_BOOKS = { ...CHUNKED_BUILT_IN_BOOKS, ...customBooks };
-  const ALL_BOOK_LIST = Object.values(ALL_BOOKS);
-  const WORD_META_MAP = Object.fromEntries(
+  const ALL_BOOKS = useMemo(() => ({ ...CHUNKED_BUILT_IN_BOOKS, ...customBooks }), [customBooks]);
+  const ALL_BOOK_LIST = useMemo(() => Object.values(ALL_BOOKS), [ALL_BOOKS]);
+  const WORD_META_MAP = useMemo(() => Object.fromEntries(
     ALL_BOOK_LIST.flatMap((book) =>
       book.words.map((word) => [
         word.id,
@@ -370,7 +378,7 @@ export default function VocabularyMaster() {
         }
       ])
     )
-  );
+  ), [ALL_BOOK_LIST]);
   const isBuiltInBook = (bookId) => Boolean(CHUNKED_BUILT_IN_BOOKS[bookId]);
   const MY_BOOKS = selectedBookIds
     .map((bookId) => ALL_BOOKS[bookId])
@@ -982,22 +990,6 @@ export default function VocabularyMaster() {
   };
 
   // --- 获取到期复习的单词 ---
-  const getDueWords = () => {
-    const now = Date.now();
-    const dueWords = [];
-    Object.values(ALL_BOOKS).forEach(book => {
-      book.words.forEach(w => {
-        if (userProgress[w.id] && userProgress[w.id].nextReview <= now) {
-          dueWords.push({
-            ...w,
-            bookId: w.bookId || book.id,
-            sourceBookId: w.sourceBookId || book.sourceBookId || book.id
-          });
-        }
-      });
-    });
-    return dueWords.sort((a, b) => userProgress[a.id].nextReview - userProgress[b.id].nextReview);
-  };
 
   const getDueWordsForBooks = (books = ALL_BOOKS) => {
     const now = Date.now();
@@ -1531,99 +1523,44 @@ export default function VocabularyMaster() {
   // --- UI Views ---
   const renderAuthPanel = (mode = 'login') => {
     const isLogin = mode === 'login';
-    const title = isLogin ? '登录' : '注册账号';
-    const description = isLogin
-      ? '登录后，你的词书、学习进度和设置会优先同步到 D1。'
-      : '创建账号后，可以将你的词书和学习进度绑定到当前用户。';
-
+    const title = isLogin ? '欢迎回来' : '创建账号';
+    const desc = isLogin ? '登录后词书与进度优先同步到云端' : '创建账号，将进度绑定到你的账号';
+    const chEmail = (e) => isLogin ? setLoginForm(p=>({...p,email:e.target.value})) : setRegisterForm(p=>({...p,email:e.target.value}));
+    const chPwd   = (e) => isLogin ? setLoginForm(p=>({...p,password:e.target.value})) : setRegisterForm(p=>({...p,password:e.target.value}));
     return (
-      <div className="max-w-md mx-auto w-full animate-in fade-in zoom-in-95 duration-500">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)]">
-          <div className="text-center">
-            <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
-              {isLogin ? <LogIn className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
+      <div className="max-w-sm mx-auto w-full animate-in fade-in zoom-in-95 duration-400">
+        <div className="card p-8" style={{borderRadius:'1.5rem'}}>
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl" style={{background:'linear-gradient(135deg,#6366f1,#7c3aed)',color:'white',boxShadow:'0 4px 20px rgba(99,102,241,.4)'}}>
+              {isLogin ? <LogIn className="h-5 w-5"/> : <UserPlus className="h-5 w-5"/>}
             </div>
-            <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950">{title}</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-500">{description}</p>
+            <h1 className="text-2xl font-black t1">{title}</h1>
+            <p className="mt-1 text-sm t2">{desc}</p>
           </div>
-
-          <form onSubmit={isLogin ? handleLoginSubmit : handleRegisterSubmit} className="mt-8 space-y-4">
+          <form onSubmit={isLogin ? handleLoginSubmit : handleRegisterSubmit} className="space-y-3">
             {!isLogin && (
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">用户名</label>
-                <input
-                  type="text"
-                  value={registerForm.username}
-                  onChange={(e) => setRegisterForm((prev) => ({ ...prev, username: e.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                  placeholder="选填"
-                />
+                <label className="mb-1.5 block text-xs font-semibold t2">用户名（选填）</label>
+                <input type="text" value={registerForm.username} onChange={e=>setRegisterForm(p=>({...p,username:e.target.value}))} className="inp" placeholder="可选"/>
               </div>
             )}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">邮箱</label>
-              <input
-                type="email"
-                value={isLogin ? loginForm.email : registerForm.email}
-                onChange={(e) => (
-                  isLogin
-                    ? setLoginForm((prev) => ({ ...prev, email: e.target.value }))
-                    : setRegisterForm((prev) => ({ ...prev, email: e.target.value }))
-                )}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                placeholder="you@example.com"
-                required
-              />
+              <label className="mb-1.5 block text-xs font-semibold t2">邮箱</label>
+              <input type="email" value={isLogin?loginForm.email:registerForm.email} onChange={chEmail} className="inp" placeholder="you@example.com" required/>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">密码</label>
-              <input
-                type="password"
-                value={isLogin ? loginForm.password : registerForm.password}
-                onChange={(e) => (
-                  isLogin
-                    ? setLoginForm((prev) => ({ ...prev, password: e.target.value }))
-                    : setRegisterForm((prev) => ({ ...prev, password: e.target.value }))
-                )}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-                placeholder="至少 6 位字符"
-                required
-              />
+              <label className="mb-1.5 block text-xs font-semibold t2">密码</label>
+              <input type="password" value={isLogin?loginForm.password:registerForm.password} onChange={chPwd} className="inp" placeholder="至少 6 位字符" required/>
             </div>
-
-            {authError && (
-              <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600 ring-1 ring-rose-100">
-                {authError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={authSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {authSubmitting ? '提交中...' : isLogin ? '登录' : '注册'}
+            {authError && <div className="pill pill-re w-full justify-center py-2 text-xs rounded-xl">{authError}</div>}
+            <button type="submit" disabled={authSubmitting} className="btn btn-p w-full mt-1">
+              {authSubmitting ? '处理中...' : isLogin ? '登录' : '注册'}
             </button>
           </form>
-
-          <div className="mt-6 flex items-center justify-between text-sm text-slate-500">
-            <button
-              onClick={() => {
-                setAuthError('');
-                setView('home');
-              }}
-              className="font-medium transition hover:text-slate-800"
-            >
-              游客模式继续
-            </button>
-            <button
-              onClick={() => {
-                setAuthError('');
-                setView(isLogin ? 'register' : 'login');
-              }}
-              className="font-semibold text-indigo-600 transition hover:text-indigo-700"
-            >
-              {isLogin ? '去注册' : '返回登录'}
+          <div className="mt-5 flex items-center justify-between text-sm">
+            <button onClick={()=>{setAuthError('');setView('home');}} className="t3 transition hover:t2">游客模式继续</button>
+            <button onClick={()=>{setAuthError('');setView(isLogin?'register':'login');}} className="font-semibold transition" style={{color:'var(--ac)'}}>
+              {isLogin ? '去注册 →' : '返回登录 →'}
             </button>
           </div>
         </div>
@@ -1631,300 +1568,146 @@ export default function VocabularyMaster() {
     );
   };
 
+
   const renderHome = () => {
     const dueWordsCount = getDueWordsForBooks(MY_BOOKS_MAP).length;
     const totalBooks = MY_BOOKS.length;
-    const totalWords = MY_BOOKS.reduce((sum, book) => sum + book.words.length, 0);
-    const totalLearned = MY_BOOKS.reduce((sum, book) => (
-      sum + book.words.filter(w => userProgress[w.id]).length
-    ), 0);
-    const dailyNewTarget = Math.max(0, Math.min(20, totalWords - totalLearned));
-    const estimatedMinutes = Math.max(5, Math.ceil((dueWordsCount + dailyNewTarget) * 0.75));
-    const firstSelectedBookId = MY_BOOKS[0]?.id;
-
+    const totalWords = MY_BOOKS.reduce((s,b)=>s+b.words.length, 0);
+    const totalLearned = MY_BOOKS.reduce((s,b)=>s+b.words.filter(w=>userProgress[w.id]).length, 0);
+    const dailyNewTarget = Math.max(0, Math.min(20, totalWords-totalLearned));
+    const estMins = Math.max(5, Math.ceil((dueWordsCount+dailyNewTarget)*0.75));
+    const firstId = MY_BOOKS[0]?.id;
+    const pct = totalWords ? Math.round((totalLearned/totalWords)*100) : 0;
+    const catCls = c=>({'四级':'pill-bl','六级':'pill-vi','考研':'pill-am'})[c]||'pill-mu';
     return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-16">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-3 rounded-full border border-indigo-100 bg-white px-4 py-2 shadow-sm">
-              <div className="rounded-2xl bg-indigo-600 p-2.5 text-white shadow-lg shadow-indigo-500/20">
-                <BrainCircuit className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">My Books</p>
-                <p className="text-xs text-slate-500">Only the books you added to home are shown here.</p>
-              </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                Finish today&apos;s tasks, then choose what to study next.
-              </h1>
-              <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
-                Home now shows only the books you selected. All available books, imports, and AI topic books are managed in the library.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-600">
-              <Flame className="h-4 w-4" />
-              Due today {dueWordsCount} words
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
-              <TrendingUp className="h-4 w-4 text-indigo-500" />
-              Added {totalBooks} books
-            </div>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-7 text-white shadow-[0_24px_70px_-22px_rgba(13,148,136,0.55)] sm:p-9">
-          <div className="absolute -top-16 right-0 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-sky-300/20 blur-3xl" />
-          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.35fr_0.95fr] lg:items-end">
-            <div className="space-y-7">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-emerald-50 backdrop-blur">
-                <Target className="h-4 w-4" />
-                Today&apos;s tasks
-              </div>
-              <div>
-                <h3 className="text-3xl font-black tracking-tight sm:text-4xl">
-                  Work through My Books first, then expand from the library.
-                </h3>
-                <p className="mt-3 max-w-xl text-sm leading-7 text-emerald-50/90 sm:text-base">
-                  Smart Review only reads due cards from My Books. When you finish reviewing, you can go back to the library and add more books anytime.
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">Due now</p>
-                  <p className="mt-3 text-4xl font-black">{dueWordsCount}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">From My Books</p>
-                </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">New words</p>
-                  <p className="mt-3 text-4xl font-black">{dailyNewTarget}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">Estimated from current books</p>
-                </div>
-                <div className="rounded-3xl border border-white/15 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">Est. minutes</p>
-                  <p className="mt-3 text-4xl font-black">{estimatedMinutes}</p>
-                  <p className="mt-2 text-sm text-emerald-50/80">Expected to finish today</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-[1.75rem] border border-white/15 bg-slate-950/15 p-6 backdrop-blur-xl">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-50/70">Overview</p>
-                  <p className="mt-2 text-xl font-bold">Home only keeps the books you truly want to study.</p>
-                </div>
-                <CalendarClock className="h-9 w-9 text-emerald-50/85" />
-              </div>
-              <div className="mt-5 space-y-3 text-sm text-emerald-50/90">
-                <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>My books</span>
-                  <span className="font-bold text-white">{totalBooks}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>Total words</span>
-                  <span className="font-bold text-white">{totalWords}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-                  <span>Learned words</span>
-                  <span className="font-bold text-white">{totalLearned}</span>
-                </div>
-              </div>
-              <div className="mt-6 grid gap-3">
-                <button
-                  onClick={startSmartReview}
-                  disabled={dueWordsCount === 0 || isPreparingReview}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-emerald-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isPreparingReview ? 'Preparing review examples' : dueWordsCount > 0 ? "Start today's review" : 'No due review cards in my books'}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    if (firstSelectedBookId) startLearning(firstSelectedBookId);
-                  }}
-                  disabled={!firstSelectedBookId}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-sm font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Continue from My Books
-                </button>
-                <button
-                  onClick={() => setView('library')}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-slate-950/15 px-5 py-4 text-sm font-semibold text-white transition hover:bg-slate-950/25"
-                >
-                  Go to library
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[1.6rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">Completion rate</p>
-                <p className="mt-1 text-3xl font-black text-slate-900">
-                  {totalWords ? Math.round((totalLearned / totalWords) * 100) : 0}%
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-[1.6rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-orange-50 p-3 text-orange-500">
-                <Flame className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">Words due today</p>
-                <p className="mt-1 text-3xl font-black text-slate-900">{dueWordsCount}</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-[1.6rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">Books on home</p>
-                <p className="mt-1 text-3xl font-black text-slate-900">{totalBooks}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
+      <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">My Books</h2>
-            <p className="mt-1 text-sm text-slate-500">Only books added to home are shown here, in the order you added them.</p>
+            <div className="pill pill-ac mb-2"><BrainCircuit className="h-3 w-3"/>我的词书</div>
+            <h1 className="text-3xl font-black tracking-tight t1 sm:text-4xl">今日学习计划</h1>
+            <p className="mt-1 text-sm t2">首页仅显示你加入的词书，全部词书在词书库统一管理。</p>
           </div>
-          <button
-            onClick={() => setView('library')}
-            className="hidden items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:text-indigo-600 sm:inline-flex"
-          >
-            Go to library <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            <span className="pill pill-or"><Flame className="h-3 w-3"/>今日待复习 {dueWordsCount} 词</span>
+            <span className="pill pill-mu"><TrendingUp className="h-3 w-3"/>{totalBooks} 本词书</span>
+          </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {MY_BOOKS.length === 0 ? (
-            <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
-              <Book className="mx-auto mb-3 h-12 w-12 text-slate-300" />
-              <h3 className="text-xl font-black text-slate-800">You have not added any books yet</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-                Go to the library and choose the books you want to study. Once added, they will appear on the home page immediately.
-              </p>
-              <button
-                onClick={() => setView('library')}
-                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
-              >
-                Go to library
-                <ArrowRight className="h-4 w-4" />
+        {/* Hero card */}
+        <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white" style={{background:'linear-gradient(135deg,#4f46e5,#7c3aed,#6d28d9)',boxShadow:'0 20px 60px rgba(99,102,241,.35)'}}>
+          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/10 blur-3xl pointer-events-none"/>
+          <div className="absolute -bottom-16 left-8 h-48 w-48 rounded-full bg-purple-300/15 blur-3xl pointer-events-none"/>
+          <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_260px] lg:items-center">
+            <div className="space-y-4">
+              <div className="pill" style={{background:'rgba(255,255,255,.15)',color:'rgba(255,255,255,.9)',border:'1px solid rgba(255,255,255,.2)'}}><Target className="h-3 w-3"/>今日任务概览</div>
+              <div>
+                <h2 className="text-2xl font-black tracking-tight sm:text-3xl">先复习已学词汇，再继续新词学习。</h2>
+                <p className="mt-2 text-sm leading-6" style={{color:'rgba(255,255,255,.72)'}}>智能复习仅从「我的词书」筛选到期卡片，完成后可前往词书库添加更多内容。</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[['待复习',dueWordsCount,'来自我的词书'],['预计新词',dailyNewTarget,'当前词书估算'],['预计时长',`${estMins}m`,'今日完成时间']].map(([l,v,s])=>(
+                  <div key={l} className="rounded-xl p-4" style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)'}}>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{color:'rgba(255,255,255,.6)'}}>{l}</p>
+                    <p className="mt-1.5 text-3xl font-black">{v}</p>
+                    <p className="mt-0.5 text-[11px]" style={{color:'rgba(255,255,255,.6)'}}>{s}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl p-5 space-y-3" style={{background:'rgba(0,0,0,.2)',border:'1px solid rgba(255,255,255,.15)'}}>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{color:'rgba(255,255,255,.55)'}}>快速开始</p>
+              <button onClick={startSmartReview} disabled={dueWordsCount===0||isPreparingReview}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0" style={{color:'#4f46e5'}}>
+                {isPreparingReview?'准备中...':dueWordsCount>0?'开始今日复习':'暂无待复习卡片'}<ArrowRight className="h-4 w-4"/>
+              </button>
+              <button onClick={()=>{if(firstId)startLearning(firstId);}} disabled={!firstId}
+                className="flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',color:'white'}}>
+                继续学习词书
+              </button>
+              <button onClick={()=>setView('library')}
+                className="flex w-full items-center justify-center gap-1 rounded-xl px-4 py-3 text-sm font-semibold transition hover:opacity-90" style={{background:'rgba(0,0,0,.15)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)'}}>
+                前往词书库<ChevronRight className="h-4 w-4"/>
               </button>
             </div>
-          ) : (
-            MY_BOOKS.map(book => {
-              const bookWordCount = book.words.length;
-              const learnedCount = book.words.filter(w => userProgress[w.id]).length;
-              const progressPercent = Math.round((learnedCount / bookWordCount) * 100) || 0;
-              const missingExamplesCount = book.words.filter(w => !w.exampleEn || !w.exampleZh).length;
-              const missingPhoneticsCount = book.words.filter(w => !w.phonetic).length;
+          </div>
+        </div>
 
-              return (
-                <div
-                  key={book.id}
-                  onClick={() => startLearning(book.id)}
-                  className="relative group flex cursor-pointer flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-7 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)]"
-                >
-                  <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-slate-50 via-indigo-50/60 to-white opacity-90" />
-                  <button
-                    onClick={(e) => handleRemoveOrDeleteBook(e, book.id)}
-                    className="absolute right-4 top-4 z-10 rounded-full p-2 text-slate-300 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                    title={customBooks[book.id] ? 'Delete custom book' : 'Remove from home'}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                  <div className="relative z-10 mb-8 flex items-start justify-between">
-                    <div className="rounded-2xl bg-white p-3 text-indigo-600 ring-1 ring-slate-200 shadow-sm transition-colors group-hover:bg-indigo-600 group-hover:text-white group-hover:ring-indigo-600">
-                      <Book className="h-6 w-6" />
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-4">
+          {[[<CheckCircle2 className="h-4 w-4"/>, '#10b981', 'rgba(16,185,129,.1)', '完成率', `${pct}%`],
+            [<Flame className="h-4 w-4"/>, '#f97316', 'rgba(249,115,22,.1)', '今日待复习', dueWordsCount],
+            [<TrendingUp className="h-4 w-4"/>, '#6366f1', 'rgba(99,102,241,.1)', '已加入词书', totalBooks]
+          ].map(([icon,c,bg,label,val])=>(
+            <div key={label} className="card p-4">
+              <div className="mb-3 inline-flex rounded-xl p-2" style={{background:bg,color:c}}>{icon}</div>
+              <p className="text-xs t2">{label}</p>
+              <p className="mt-0.5 text-2xl font-black t1">{val}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* My Books */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-black t1">我的词书</h2>
+              <p className="mt-0.5 text-xs t2">按加入顺序排列，点击即可学习</p>
+            </div>
+            <button onClick={()=>setView('library')} className="pill pill-mu transition hover:border-indigo-400">词书库<ChevronRight className="h-3 w-3"/></button>
+          </div>
+          {MY_BOOKS.length===0 ? (
+            <div className="rounded-2xl border-2 border-dashed p-16 text-center" style={{borderColor:'var(--cb)'}}>
+              <Book className="mx-auto mb-3 h-10 w-10 t3"/>
+              <h3 className="text-lg font-black t1">还没有词书</h3>
+              <p className="mx-auto mt-2 max-w-xs text-sm t2">前往词书库选择想学的词书，加入后立即出现在这里。</p>
+              <button onClick={()=>setView('library')} className="btn btn-p mt-6"><ArrowRight className="h-4 w-4"/>前往词书库</button>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {MY_BOOKS.map(book=>{
+                const cnt=book.words.length, learned=book.words.filter(w=>userProgress[w.id]).length;
+                const p=cnt?Math.round((learned/cnt)*100):0, cat=getBookCategory(book);
+                const misEx=book.words.filter(w=>!w.exampleEn).length;
+                const isGen=exampleGenerationState.bookId===book.id&&exampleGenerationState.completed<exampleGenerationState.total;
+                return (
+                  <div key={book.id} onClick={()=>startLearning(book.id)} className="card card-i relative p-6">
+                    <div className="card-top-bar"/>
+                    <button onClick={e=>handleRemoveOrDeleteBook(e,book.id)} className="absolute right-4 top-4 rounded-full p-1.5 t3 transition hover:pill-re"
+                      title={customBooks[book.id]?'删除词书':'从首页移除'}><Trash2 className="h-4 w-4"/></button>
+                    <div className="mb-4 flex items-start gap-3">
+                      <div className="rounded-xl p-2.5 transition" style={{background:'var(--acs)',color:'var(--ac)'}}><Book className="h-5 w-5"/></div>
+                      <div className="min-w-0 flex-1 pr-8">
+                        <span className={`pill ${catCls(cat)} mb-1`}>{cat}</span>
+                        <h3 className="text-lg font-black leading-tight t1">{book.name}</h3>
+                        <p className="mt-0.5 text-xs t3">已学 {learned} / {cnt} 词</p>
+                      </div>
                     </div>
-                    <span className="mr-8 mt-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
-                      {bookWordCount} words
-                    </span>
-                  </div>
-                  <div className="relative z-10">
-                    <div className="mb-2 inline-flex rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
-                      {getBookCategory(book)}
-                    </div>
-                    <h3 className="pr-6 text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Learned {learnedCount} / {bookWordCount} words. Tap to continue.
-                    </p>
-                  </div>
-                  <div className="relative z-10 mt-6 space-y-4">
                     <div>
-                      <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
-                        <span>Overall progress</span>
-                        <span>{progressPercent}%</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-slate-100">
-                        <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${progressPercent}%` }} />
-                      </div>
-                    </div>
-                    <div className="grid gap-2 text-sm text-slate-500">
-                      <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                        <span>例句</span>
-                        <span className="font-semibold text-slate-700">
-                          {missingExamplesCount === 0 ? '已就绪' : `缺失 ${missingExamplesCount} 条`}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                        <span>音标</span>
-                        <span className="font-semibold text-slate-700">
-                          {missingPhoneticsCount === 0 ? '已就绪' : `缺失 ${missingPhoneticsCount} 条`}
-                        </span>
+                      <div className="mb-1 flex justify-between text-[11px] font-semibold t3"><span>学习进度</span><span>{p}%</span></div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{background:'var(--mu)'}}>
+                        {isGen
+                          ? <div className="h-full p-shimmer rounded-full" style={{width:`${Math.round((exampleGenerationState.completed/exampleGenerationState.total)*100)}%`}}/>
+                          : <div className="h-full rounded-full transition-all duration-500" style={{width:`${p}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 pt-2 text-sm font-semibold text-indigo-600">
-                      <PlayCircle className="h-5 w-5" />
-                      开始学习
-                    </div>
+                    {isGen&&<p className="mt-1.5 text-[11px]" style={{color:'var(--ac)'}}>生成例句中 ({exampleGenerationState.completed}/{exampleGenerationState.total})...</p>}
+                    {!isGen&&misEx>0&&<p className="mt-1.5 text-[11px] t3">缺失 {misEx} 条例句</p>}
+                    <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold" style={{color:'var(--ac)'}}><PlayCircle className="h-4 w-4"/>点击开始学习</div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-            <Save className="w-5 h-5 text-slate-600" />
-            项目数据备份与恢复
-          </h3>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            您的学习进度默认保存在当前浏览器中。若您需要更换设备，或防止清理浏览器缓存导致数据丢失，请定期导出备份。
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={handleExportData}
-              className="flex-1 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl transition-colors flex items-center justify-center border border-emerald-200"
-            >
-              <Save className="w-5 h-5 mr-2" />
-              导出进度备份 (.json)
-            </button>
-            <label className="flex-1 px-4 py-3 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center cursor-pointer">
-              <UploadCloud className="w-5 h-5 mr-2" />
-              恢复历史备份
-              <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
-            </label>
+        {/* Backup */}
+        <div className="card p-6">
+          <h3 className="text-base font-bold t1 mb-1 flex items-center gap-2"><Save className="h-4 w-4 t2"/>数据备份与恢复</h3>
+          <p className="text-sm t2 mb-4">学习进度默认保存在浏览器中。更换设备前请定期导出备份。</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button onClick={handleExportData} className="btn btn-ok flex-1"><Save className="h-4 w-4"/>导出进度备份</button>
+            <label className="btn btn-g flex-1 cursor-pointer"><UploadCloud className="h-4 w-4"/>恢复历史备份<input type="file" accept=".json" className="hidden" onChange={handleImportData}/></label>
           </div>
         </div>
       </div>
@@ -1932,395 +1715,185 @@ export default function VocabularyMaster() {
   };
 
   const renderLibrary = () => {
-    const normalizedSearch = librarySearch.trim().toLowerCase();
-    const filteredBooks = ALL_BOOK_LIST.filter((book) => {
-      const category = getBookCategory(book);
-      const matchesCategory = libraryFilter === BOOK_LIBRARY_FILTERS[0] || category === libraryFilter;
-      if (!matchesCategory) return false;
-      if (!normalizedSearch) return true;
-
-      const haystack = `${book.name} ${category} ${getBookDescription(book)}`.toLowerCase();
-      return haystack.includes(normalizedSearch);
+    const ns = librarySearch.trim().toLowerCase();
+    const filtered = ALL_BOOK_LIST.filter(b => {
+      const cat = getBookCategory(b);
+      if (libraryFilter !== BOOK_LIBRARY_FILTERS[0] && cat !== libraryFilter) return false;
+      if (!ns) return true;
+      return `${b.name} ${cat} ${getBookDescription(b)}`.toLowerCase().includes(ns);
     });
-
+    const catCls = c=>({'四级':'pill-bl','六级':'pill-vi','考研':'pill-am'})[c]||'pill-mu';
     return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-500 pb-16">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-3 rounded-full border border-indigo-100 bg-white px-4 py-2 shadow-sm">
-              <div className="rounded-2xl bg-indigo-600 p-2.5 text-white shadow-lg shadow-indigo-500/20">
-                <Book className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">词书库</p>
-                <p className="text-xs text-slate-500">所有可用词书都在这里统一管理</p>
-              </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">从词书库选择，再加入首页。</h1>
-              <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
-                搜索、筛选并挑选你真正要学的词书。加入后，首页会立刻同步显示。
-              </p>
-            </div>
+      <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="pill pill-ac mb-2"><Book className="h-3 w-3"/>词书库</div>
+            <h1 className="text-3xl font-black tracking-tight t1 sm:text-4xl">从词书库选择，再加入首页。</h1>
+            <p className="mt-1 text-sm t2">搜索、筛选并挑选你真正要学的词书，加入后首页立刻同步显示。</p>
           </div>
-          <button
-            onClick={() => setView('home')}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-4 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-indigo-600"
-          >
-            返回我的词书
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <button onClick={()=>setView('home')} className="btn btn-g shrink-0">返回我的词书<ChevronRight className="h-4 w-4"/></button>
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        {/* Search + filter */}
+        <div className="card p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={librarySearch}
-                onChange={(e) => setLibrarySearch(e.target.value)}
-                placeholder="按词书名、分类或描述搜索"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100"
-              />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 t3"/>
+              <input type="text" value={librarySearch} onChange={e=>setLibrarySearch(e.target.value)}
+                placeholder="按词书名、分类或描述搜索" className="inp pl-10"/>
             </div>
             <div className="flex flex-wrap gap-2">
-              {BOOK_LIBRARY_FILTERS.map((filter) => {
-                const active = libraryFilter === filter;
-                return (
-                  <button
-                    key={filter}
-                    onClick={() => setLibraryFilter(filter)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                  >
-                    {filter}
-                  </button>
-                );
-              })}
+              {BOOK_LIBRARY_FILTERS.map(f=>(
+                <button key={f} onClick={()=>setLibraryFilter(f)}
+                  className={`pill transition ${libraryFilter===f?'btn-p text-white border-0':'pill-mu hover:border-indigo-400'}`}>{f}</button>
+              ))}
             </div>
           </div>
-          {!authUser && (
-            <p className="mt-4 text-sm text-slate-500">
-              当前是游客模式。你仍然可以把词书加入首页并保存在本地，登录后可同步到账号。
-            </p>
-          )}
+          {!authUser&&<p className="mt-3 text-xs t3">当前是游客模式。词书加入首页后保存在本地，登录后可同步到账号。</p>}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {filteredBooks.map((book) => {
-            const isSelected = selectedBookIds.includes(book.id);
-            const category = getBookCategory(book);
+        {/* Book grid */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {filtered.map(book=>{
+            const sel = selectedBookIds.includes(book.id);
+            const cat = getBookCategory(book);
             return (
-              <div
-                key={book.id}
-                className="group relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-[0_24px_60px_-24px_rgba(15,23,42,0.35)]"
-              >
-                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-slate-50 via-indigo-50/60 to-white opacity-90" />
-                <div className="relative z-10 mb-8 flex items-start justify-between">
-                  <div className="rounded-2xl bg-white p-3 text-indigo-600 ring-1 ring-slate-200 shadow-sm">
-                    <Book className="h-6 w-6" />
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
-                    {book.words.length} words
-                  </span>
+              <div key={book.id} className="card card-i relative p-6">
+                <div className="card-top-bar"/>
+                <div className="mb-4 flex items-start justify-between">
+                  <div className="rounded-xl p-2.5" style={{background:'var(--acs)',color:'var(--ac)'}}><Book className="h-5 w-5"/></div>
+                  <span className="text-xs font-semibold t3">{book.words.length} 词</span>
                 </div>
-                <div className="relative z-10">
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{category}</span>
-                    {isSelected && (
-                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">已加入首页</span>
-                    )}
+                <div className="mb-4">
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    <span className={`pill ${catCls(cat)}`}>{cat}</span>
+                    {sel&&<span className="pill pill-gr">已加入首页</span>}
                   </div>
-                  <h3 className="text-[28px] font-black leading-tight tracking-tight text-slate-950">{book.name}</h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-500">{getBookDescription(book)}</p>
+                  <h3 className="text-xl font-black leading-tight t1">{book.name}</h3>
+                  <p className="mt-2 text-sm t2 leading-6">{getBookDescription(book)}</p>
                 </div>
-                <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row">
-                  <button
-                    onClick={() => toggleBookSelection(book.id)}
-                    className={`flex-1 rounded-2xl px-5 py-4 text-sm font-bold transition ${isSelected ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-700'}`}
-                  >
-                    {isSelected ? '从首页移除' : '加入首页'}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button onClick={()=>toggleBookSelection(book.id)}
+                    className={`btn flex-1 ${sel?'btn-g':'btn-p'}`}>
+                    {sel?'从首页移除':'加入首页'}
                   </button>
-                  {isSelected && (
-                    <button
-                      onClick={() => startLearning(book.id)}
-                      className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      开始学习
-                    </button>
-                  )}
+                  {sel&&<button onClick={()=>startLearning(book.id)} className="btn btn-g flex-1">开始学习</button>}
                 </div>
               </div>
             );
           })}
-          {filteredBooks.length === 0 && (
-            <div className="col-span-full rounded-[2rem] border-2 border-dashed border-slate-200 bg-white px-8 py-16 text-center text-slate-500">
-              <Search className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-              <h3 className="text-xl font-black text-slate-800">没有找到符合条件的词书</h3>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-                试试调整搜索词或切换分类筛选，也可以上传你自己的本地词书。
-              </p>
+          {filtered.length===0&&(
+            <div className="col-span-full rounded-2xl border-2 border-dashed p-16 text-center" style={{borderColor:'var(--cb)'}}>
+              <Search className="mx-auto mb-3 h-10 w-10 t3"/>
+              <h3 className="text-lg font-black t1">没有找到符合条件的词书</h3>
+              <p className="mt-2 text-sm t2">试试调整搜索词或切换分类筛选，也可以上传本地词书。</p>
             </div>
           )}
         </div>
 
-        <div className="bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Download className="w-5 h-5 text-indigo-600" />
-            内置词书与扩充词库
-          </h3>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            这里统一管理所有可用词书。四级核心与六级进阶已内置在应用中，你也可以继续上传自己的本地词书，上传后会自动加入首页，同时出现在词书库里。
-          </p>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
-              <Book className="w-5 h-5 mr-2" />
-              已内置四级核心
-            </div>
-            <div className="flex-1 min-w-[200px] px-4 py-3 bg-white text-indigo-600 font-medium rounded-xl border border-indigo-200 flex items-center justify-center shadow-sm">
-              <Book className="w-5 h-5 mr-2" />
-              已内置六级进阶
-            </div>
-            <label className="flex-1 min-w-[200px] px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-sm">
-              <Upload className="w-5 h-5 mr-2" />
-              上传本地 .txt / .json
-              <input type="file" accept=".txt,.json" className="hidden" onChange={handleFileUpload} />
-            </label>
+        {/* Upload */}
+        <div className="card p-6">
+          <h3 className="text-base font-bold t1 mb-1 flex items-center gap-2"><Download className="h-4 w-4 t2"/>内置词书与扩充词库</h3>
+          <p className="text-sm t2 mb-4">四级核心与六级进阶已内置，也可上传本地词书（.txt / .json），上传后自动加入首页。</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="btn btn-g flex-1 cursor-default"><Book className="h-4 w-4"/>已内置四级核心</div>
+            <div className="btn btn-g flex-1 cursor-default"><Book className="h-4 w-4"/>已内置六级进阶</div>
+            <label className="btn btn-p flex-1 cursor-pointer"><Upload className="h-4 w-4"/>上传本地词书<input type="file" accept=".txt,.json" className="hidden" onChange={handleFileUpload}/></label>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-indigo-50 to-white p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
-          <h3 className="text-2xl font-black text-slate-900 mb-3 flex items-center gap-3">
-            <Sparkles className="w-7 h-7 text-indigo-500" />
-            AI 智能生成词书
-          </h3>
-          <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-            输入一个主题，系统会从现有词库里筛选合适的候选词，生成新的专题词书，并自动加入首页。
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={aiTopic}
-              onChange={(e) => setAiTopic(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAiGenerateBook();
-              }}
+        {/* AI generation */}
+        <div className="card p-6" style={{background:'linear-gradient(135deg,var(--card),var(--acs))',borderColor:'var(--cbh)'}}>
+          <h3 className="text-xl font-black t1 mb-2 flex items-center gap-2"><Sparkles className="h-5 w-5" style={{color:'var(--ac)'}}/>AI 智能生成词书</h3>
+          <p className="text-sm t2 mb-4">输入主题，从词库里筛选合适词汇生成专题词书，自动加入首页。</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input type="text" value={aiTopic} onChange={e=>setAiTopic(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter')handleAiGenerateBook();}}
               placeholder="如：咖啡馆用语、大厂面试、旅游英语..."
-              className="flex-1 px-6 py-5 rounded-2xl border border-slate-200 bg-white text-lg outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all"
-            />
-            <button
-              onClick={handleAiGenerateBook}
-              disabled={!aiTopic.trim() || isAiGenerating}
-              className="px-8 py-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 min-w-[160px]"
-            >
-              {isAiGenerating ? (
-                <>
-                  <RotateCcw className="w-5 h-5 animate-spin" />
-                  生成中
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-5 h-5" />
-                  生成
-                </>
-              )}
+              className="inp flex-1 text-base py-3"/>
+            <button onClick={handleAiGenerateBook} disabled={!aiTopic.trim()||isAiGenerating}
+              className="btn btn-p min-w-[120px]">
+              {isAiGenerating?<><RotateCcw className="h-4 w-4 animate-spin"/>生成中</>:<><Wand2 className="h-4 w-4"/>生成词书</>}
             </button>
           </div>
         </div>
       </div>
     );
   };
-
 
   const renderLearning = () => {
     const word = activeLearningQueue[currentWordIndex];
     if (!word) return null;
-
-    const totalUnique = new Set(activeLearningQueue.map((item) => item.id)).size;
-    const remainingUnique = new Set(activeLearningQueue.slice(currentWordIndex).map((item) => item.id)).size;
-    const currentProgress = totalUnique - remainingUnique + 1;
-    const isStage1 = learnStage === 1;
-    const isStage2 = learnStage === 2;
-    const isStage3 = learnStage === 3;
-
+    const totalUnique = new Set(activeLearningQueue.map(i=>i.id)).size;
+    const remUnique = new Set(activeLearningQueue.slice(currentWordIndex).map(i=>i.id)).size;
+    const prog = totalUnique - remUnique + 1;
+    const s1=learnStage===1, s2=learnStage===2, s3=learnStage===3;
+    const stages=[{n:1,l:'先听发音'},{n:2,l:'理解词义'},{n:3,l:'完成确认'}];
     return (
-      <div className="mx-auto w-full max-w-5xl animate-in slide-in-from-bottom-8 duration-500">
-        <div className="mb-6 grid gap-4 rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur md:grid-cols-[auto_1fr_auto] md:items-center">
-          <button
-            onClick={() => setView('home')}
-            className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-          >
-            <RotateCcw className="h-4 w-4" />
-            返回首页
-          </button>
+      <div className="mx-auto w-full max-w-4xl animate-in slide-in-from-bottom-6 duration-400">
+        {/* Top bar */}
+        <div className="card mb-5 p-3 grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center">
+          <button onClick={()=>setView('home')} className="btn btn-g py-2 px-3 text-xs"><RotateCcw className="h-3.5 w-3.5"/>返回首页</button>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {[
-              { step: 1, label: '先听发音' },
-              { step: 2, label: '理解词义' },
-              { step: 3, label: '完成确认' },
-            ].map((item) => {
-              const active = learnStage === item.step;
-              return (
-                <div
-                  key={item.step}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
-                    active
-                      ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 shadow-[0_0_0_4px_rgba(99,102,241,0.12)]'
-                      : 'bg-slate-50 text-slate-400 ring-1 ring-slate-100'
-                  }`}
-                >
-                  <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-                      active ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 ring-1 ring-slate-200'
-                    }`}
-                  >
-                    {item.step}
-                  </span>
-                  {item.label}
-                </div>
-              );
-            })}
+            {stages.map(({n,l})=>(
+              <div key={n} className={`pill transition ${learnStage===n?'btn-p text-white':'pill-mu'}`}>
+                <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${learnStage===n?'bg-white/30':'bg-white/10'}`}>{n}</span>{l}
+              </div>
+            ))}
           </div>
-          <div className="flex items-center justify-end gap-3">
-            <div className="hidden h-2 w-28 overflow-hidden rounded-full bg-slate-100 sm:block">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500"
-                style={{ width: `${Math.max(8, Math.round((currentProgress / totalUnique) * 100))}%` }}
-              />
+          <div className="flex items-center gap-2 justify-end">
+            <div className="h-1.5 w-24 rounded-full overflow-hidden hidden sm:block" style={{background:'var(--mu)'}}>
+              <div className="h-full rounded-full" style={{width:`${Math.max(4,Math.round((prog/totalUnique)*100))}%`,background:'linear-gradient(90deg,#6366f1,#8b5cf6)'}}/>
             </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 ring-1 ring-slate-200">
-              {currentProgress} <span className="font-medium text-slate-400">/ {totalUnique}</span>
-            </div>
+            <span className="pill pill-mu text-[11px]">{prog}<span className="t3">/{totalUnique}</span></span>
           </div>
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="overflow-hidden rounded-[2.25rem] border border-slate-200 bg-white shadow-[0_24px_70px_-30px_rgba(15,23,42,0.35)]">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/90 px-6 py-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-indigo-600 ring-1 ring-slate-200">
-                <GraduationCap className="h-4 w-4" />
-                学习阶段
-              </div>
-              <div className="text-sm font-medium text-slate-400">剩余 {remainingUnique} 词</div>
-            </div>
-
-            <div className="flex min-h-[620px] flex-col justify-between p-8 sm:p-12">
-              <div className="flex-1">
-                <div className="flex h-full flex-col items-center text-center">
-                  <div className="mt-2 inline-flex items-center rounded-full bg-slate-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400 ring-1 ring-slate-100">
-                    {isStage1 ? 'Listen First' : isStage2 ? 'Meaning Input' : 'Final Check'}
+        {/* Main card */}
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4" style={{borderBottom:'1px solid var(--cb)',background:'var(--mu)'}}>
+            <div className="pill pill-ac"><GraduationCap className="h-3 w-3"/>学习阶段</div>
+            <span className="text-xs t3">剩余 {remUnique} 词</span>
+          </div>
+          <div className="flex min-h-[520px] flex-col justify-between p-8 sm:p-12">
+            <div className="flex flex-col items-center text-center flex-1">
+              <div className="pill pill-mu text-[10px] tracking-widest uppercase">{s1?'听音阶段':s2?'词义输入':'自我确认'}</div>
+              <h2 className="mt-6 text-6xl font-black tracking-tight t1 sm:text-8xl" style={{fontFamily:'Inter,sans-serif'}}>{word.word}</h2>
+              <button onClick={()=>playWordAudio(word.word,{allowUnlock:true})}
+                className="mt-5 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm transition" style={{background:'var(--mu)',color:'var(--t2)',border:'1px solid var(--cb)'}}>
+                <Volume2 className="h-4 w-4" style={{color:'var(--ac)'}}/>
+                <span className="font-mono tracking-wide">{word.phonetic||'/暂无音标/'}</span>
+              </button>
+              {(s2||s3)&&(
+                <div className="w-full max-w-2xl space-y-4 text-left mt-8 animate-in fade-in duration-300">
+                  <div className="flex items-start gap-3 rounded-2xl p-5" style={{background:'var(--mu)',border:'1px solid var(--cb)'}}>
+                    {word.pos&&<span className="mt-0.5 shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold" style={{background:'var(--acs)',color:'var(--ac)'}}>{word.pos}</span>}
+                    <p className="text-xl font-semibold leading-snug t1">{word.meaning}</p>
                   </div>
-                  <h2 className="mt-7 text-5xl font-black tracking-tight text-slate-950 sm:text-[5rem]">{word.word}</h2>
-                  <button
-                    onClick={() => playWordAudio(word.word, { allowUnlock: true })}
-                    className="mt-6 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-slate-600 transition hover:bg-slate-100"
-                  >
-                    <Volume2 className="h-5 w-5 text-indigo-500" />
-                    <span className="text-lg font-mono tracking-wide">{word.phonetic || '/暂无音标/'}</span>
-                  </button>
-
-                  <div className="my-10 h-px w-full max-w-xl bg-slate-100" />
-
-                  {(isStage2 || isStage3) && (
-                    <div className="w-full max-w-2xl space-y-8 text-left animate-in fade-in duration-300">
-                      <div className="flex items-start gap-4 rounded-[1.75rem] bg-slate-50/90 p-6 ring-1 ring-slate-100">
-                        {word.pos && (
-                          <span className="mt-0.5 shrink-0 rounded-lg bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-600 ring-1 ring-indigo-100">
-                            {word.pos}
-                          </span>
-                        )}
-                        <p className="text-2xl font-semibold leading-snug text-slate-800">{word.meaning}</p>
-                      </div>
-
-                      {word.exampleEn && (
-                        <div className="flex items-start gap-4 rounded-[1.75rem] border border-indigo-100 bg-indigo-50/60 p-6">
-                          <Quote className="mt-1 h-5 w-5 shrink-0 text-slate-300" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="text-lg leading-8 text-slate-700">{word.exampleEn}</p>
-                              <button
-                                onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
-                                className="mt-0.5 shrink-0 rounded-full p-2 text-indigo-400 transition hover:bg-white/70 hover:text-indigo-600"
-                              >
-                                <Play className="h-4 w-4" />
-                              </button>
-                            </div>
-                            {word.exampleZh && (
-                              <p className="mt-3 text-sm font-medium leading-6 text-slate-500">{word.exampleZh}</p>
-                            )}
-                          </div>
+                  {word.exampleEn&&(
+                    <div className="flex items-start gap-3 rounded-2xl p-5" style={{background:'var(--acs)',border:'1px solid var(--cbh)'}}>
+                      <Quote className="mt-1 h-4 w-4 shrink-0 t3"/>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-base leading-7 t1">{word.exampleEn}</p>
+                          <button onClick={()=>speakText(word.exampleEn,{allowUnlock:true})} className="shrink-0 rounded-full p-1.5 transition" style={{color:'var(--ac)'}}><Play className="h-3.5 w-3.5"/></button>
                         </div>
-                      )}
+                        {word.exampleZh&&<p className="mt-2 text-sm t2">{word.exampleZh}</p>}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-10 border-t border-slate-100 pt-6">
-                {isStage1 && (
-                  <button
-                    onClick={handleToStage2}
-                    className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
-                  >
-                    查看词义
-                    <ArrowRight className="h-5 w-5" />
-                  </button>
-                )}
-                {isStage2 && (
-                  <button
-                    onClick={handleToStage3}
-                    className="flex w-full items-center justify-center gap-2 rounded-[1.25rem] bg-slate-950 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
-                  >
-                    进入确认
-                    <ArrowRight className="h-5 w-5" />
-                  </button>
-                )}
-                {isStage3 && (
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <button
-                      onClick={() => handleLearningDecision('forgot')}
-                      className="rounded-[1.25rem] bg-slate-900 py-4 text-base font-semibold text-white transition hover:bg-slate-800 active:scale-[0.98]"
-                    >
-                      不会
-                    </button>
-                    <button
-                      onClick={() => handleLearningDecision('blurred')}
-                      className="rounded-[1.25rem] bg-indigo-600 py-4 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]"
-                    >
-                      模糊
-                    </button>
-                    <button
-                      onClick={() => handleLearningDecision('mastered')}
-                      className="rounded-[1.25rem] bg-emerald-500 py-4 text-base font-bold text-white transition hover:bg-emerald-600 active:scale-[0.98]"
-                    >
-                      掌握
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">当前进度</p>
-              <p className="mt-3 text-4xl font-black text-slate-950">{currentProgress}</p>
-              <p className="mt-2 text-sm text-slate-500">当前正在学习第 {currentProgress} 个词，总任务量 {totalUnique}。</p>
-            </div>
-            <div className="rounded-[1.8rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">阶段说明</p>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                <p><span className="font-semibold text-slate-900">1.</span> 先只看单词和音标，先听发音，不展示词义和例句。</p>
-                <p><span className="font-semibold text-slate-900">2.</span> 再展开词义和例句，完成记忆输入。</p>
-                <p><span className="font-semibold text-slate-900">3.</span> 最后做一次自我判断，不会退回听音，模糊退回记忆，掌握进入下一词。</p>
-              </div>
-            </div>
-            <div className="rounded-[1.8rem] border border-slate-200 bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-300">当前单词</p>
-              <p className="mt-3 text-2xl font-black">{word.word}</p>
-              {!isStage1 && <p className="mt-2 text-sm text-slate-300">{word.meaning}</p>}
-              {word.phonetic && (
-                <p className="mt-4 font-mono text-sm text-slate-200">{word.phonetic}</p>
+            <div className="mt-8 pt-5" style={{borderTop:'1px solid var(--cb)'}}>
+              {s1&&<button onClick={handleToStage2} className="btn btn-p w-full py-3.5">查看词义<ArrowRight className="h-4 w-4"/></button>}
+              {s2&&<button onClick={handleToStage3} className="btn btn-p w-full py-3.5">进入确认<ArrowRight className="h-4 w-4"/></button>}
+              {s3&&(
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <button onClick={()=>handleLearningDecision('forgot')} className="btn btn-danger py-3.5">不会</button>
+                  <button onClick={()=>handleLearningDecision('blurred')} className="btn btn-warn py-3.5">模糊</button>
+                  <button onClick={()=>handleLearningDecision('mastered')} className="btn btn-ok py-3.5 font-black">掌握 ✓</button>
+                </div>
               )}
             </div>
           </div>
@@ -2328,169 +1901,87 @@ export default function VocabularyMaster() {
       </div>
     );
   };
-
   const renderSpelling = () => {
     const word = spellingQueue[currentSpellingIndex];
     if (!word) return null;
-
-    const targetWord = word.word;
-    const normalizedInput = spellingInput.toLowerCase();
-    const normalizedTarget = targetWord.toLowerCase();
-    const spellingSlots = targetWord.split('').map((char, index) => {
-      const typedChar = spellingInput[index] || '';
-      const normalizedTypedChar = normalizedInput[index] || '';
-      const isSeparator = char === ' ' || char === '-' || char === "'";
-      const hasTypedChar = typedChar.length > 0;
-      const isCorrectChar = normalizedTypedChar === normalizedTarget[index];
-      const showError = spellingFeedback === 'incorrect' && hasTypedChar && !isCorrectChar;
-
-      return {
-        key: `${char}_${index}`,
-        char,
-        typedChar,
-        isSeparator,
-        isCorrectChar,
-        showError,
-      };
+    const tgt = word.word;
+    const normIn = spellingInput.toLowerCase();
+    const normTgt = tgt.toLowerCase();
+    const slots = tgt.split('').map((ch,i) => {
+      const typed = spellingInput[i]||'';
+      const isSep = ch===' '||ch==='-'||ch==="'";
+      const isOk = normIn[i]===normTgt[i];
+      const showErr = spellingFeedback==='incorrect'&&typed&&!isOk;
+      return {key:`${ch}_${i}`,ch,typed,isSep,isOk,showErr};
     });
-
-    const totalUnique = new Set(spellingQueue.map((item) => item.id)).size;
-    const remainingUnique = new Set(spellingQueue.slice(currentSpellingIndex).map((item) => item.id)).size;
-    const currentProgress = totalUnique - remainingUnique + 1;
-
-    const titleText = sessionType === 'smart_review'
-      ? `智能复习拼写 (${currentProgress}/${totalUnique})`
-      : `阶段拼写测试 (${currentProgress}/${totalUnique})`;
-
+    const totalU=new Set(spellingQueue.map(w=>w.id)).size;
+    const remU=new Set(spellingQueue.slice(currentSpellingIndex).map(w=>w.id)).size;
+    const prog=totalU-remU+1;
     return (
-      <div className="max-w-xl mx-auto w-full animate-in slide-in-from-right-8 duration-500">
-        <div className="text-center mb-8">
-          <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-sm font-bold rounded-full mb-4 flex items-center gap-2 justify-center w-max mx-auto">
-            {sessionType === 'smart_review' ? <CalendarClock className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
-            {titleText}
-          </span>
-          <h2 className="text-2xl font-bold text-slate-800">根据提示拼写出对应的英文单词</h2>
+      <div className="max-w-lg mx-auto w-full animate-in slide-in-from-right-6 duration-400">
+        <div className="text-center mb-6">
+          <div className="pill pill-ac mx-auto mb-3 w-fit">
+            {sessionType==='smart_review'?<CalendarClock className="h-3 w-3"/>:<GraduationCap className="h-3 w-3"/>}
+            {sessionType==='smart_review'?'智能复习拼写':'阶段拼写测试'} ({prog}/{totalU})
+          </div>
+          <h2 className="text-xl font-black t1">根据提示拼写出对应的英文单词</h2>
         </div>
-
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
-          <div className="space-y-6 mb-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-1 rounded-lg bg-slate-100 p-2 text-slate-500"><Book className="w-4 h-4" /></div>
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">词义提示</span>
-                  {word.phonetic && (
-                    <p className="mt-1 font-mono text-sm text-slate-500">{word.phonetic}</p>
-                  )}
-                  <p className="mt-1 text-lg font-medium text-slate-800">
-                    {word.pos && <span className="mr-2 text-indigo-600">{word.pos}</span>}
-                    {word.meaning}
-                  </p>
-                </div>
+        <div className="card p-7 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="rounded-lg p-2 mt-0.5" style={{background:'var(--mu)'}}><Book className="h-4 w-4 t3"/></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest t3 mb-1">词义提示</p>
+                {word.phonetic&&<p className="text-xs font-mono t3 mb-1">{word.phonetic}</p>}
+                <p className="text-base font-semibold t1">
+                  {word.pos&&<span className="mr-2 text-sm font-bold" style={{color:'var(--ac)'}}>{word.pos}</span>}
+                  {word.meaning}
+                </p>
               </div>
-              {spellingFeedback !== 'correct' && (
-                <button
-                  type="button"
-                  onClick={() => playWordAudio(word.word, { allowUnlock: true })}
-                  className="group -mt-1 shrink-0 rounded-full p-2 text-amber-500 transition-colors hover:bg-amber-100"
-                  title="播放读音提示"
-                >
-                  <Lightbulb className="w-7 h-7 transition-transform group-active:scale-90" />
-                </button>
-              )}
             </div>
-
-            {word.exampleZh && (
-              <div className="flex items-start gap-3">
-                <div className="mt-1 rounded-lg bg-slate-100 p-2 text-slate-500"><BrainCircuit className="w-4 h-4" /></div>
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">语境提示</span>
-                  <p className="mt-1 text-lg text-slate-700">{word.exampleZh}</p>
-                </div>
-              </div>
+            {spellingFeedback!=='correct'&&(
+              <button type="button" onClick={()=>playWordAudio(word.word,{allowUnlock:true})}
+                className="shrink-0 rounded-full p-2 transition" style={{background:'rgba(245,158,11,.1)',color:'#f59e0b'}} title="播放读音提示">
+                <Lightbulb className="h-5 w-5"/>
+              </button>
             )}
           </div>
-
+          {word.exampleZh&&(
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg p-2 mt-0.5" style={{background:'var(--mu)'}}><BrainCircuit className="h-4 w-4 t3"/></div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest t3 mb-1">语境提示</p>
+                <p className="text-base t1">{word.exampleZh}</p>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSpellingSubmit}>
-            <div
-              onClick={() => inputRef.current?.focus()}
-              className={`w-full rounded-2xl border-2 px-5 py-5 transition-all ${
-                spellingFeedback === 'correct'
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : spellingFeedback === 'incorrect'
-                    ? 'border-rose-500 bg-rose-50 animate-shake'
-                    : 'border-slate-200 bg-slate-50 focus-within:border-indigo-500 focus-within:bg-white'
-              }`}
-            >
-              <div className="pointer-events-none flex flex-wrap justify-center gap-2 sm:gap-3">
-                {spellingSlots.map((slot) => (
-                  <div
-                    key={slot.key}
-                    className={`min-w-[2.2rem] border-b-2 text-center font-mono text-2xl leading-[2.6rem] sm:min-w-[2.6rem] ${
-                      slot.isSeparator
-                        ? 'border-transparent text-slate-400'
-                        : slot.showError
-                          ? 'border-rose-400 text-rose-600'
-                          : slot.isCorrectChar && slot.typedChar
-                            ? 'border-emerald-400 text-emerald-700'
-                            : 'border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    {slot.typedChar || (slot.isSeparator ? slot.char : '_')}
+            <div onClick={()=>inputRef.current?.focus()}
+              className={`w-full rounded-2xl border-2 px-5 py-5 transition-all cursor-text ${spellingFeedback==='correct'?'border-emerald-500 bg-emerald-50':spellingFeedback==='incorrect'?'border-rose-500 animate-shake':'focus-within:border-indigo-400'}`}
+              style={!spellingFeedback?{borderColor:'var(--cb)',background:'var(--mu)'}:{}}>
+              <div className="pointer-events-none flex flex-wrap justify-center gap-2">
+                {slots.map(s=>(
+                  <div key={s.key} className={`slot ${s.isSep?'border-transparent t3':s.showErr?'slot-err':s.isOk&&s.typed?'slot-ok':'slot-empty'}`}
+                    style={{minWidth:s.isSep?'1rem':'2rem'}}>
+                    {s.typed||(s.isSep?s.ch:'_')}
                   </div>
                 ))}
               </div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={spellingInput}
-                onChange={(e) => {
-                  setSpellingInput(e.target.value);
-                  setSpellingFeedback(null);
-                }}
-                disabled={spellingFeedback === 'correct'}
-                className="sr-only"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-                aria-label="Spelling input"
-              />
-              <p className="mt-4 text-center text-sm text-slate-400">
-                每条横线代表一个字母，输错的位置会标红
-              </p>
+              <input ref={inputRef} type="text" value={spellingInput}
+                onChange={e=>{setSpellingInput(e.target.value);setSpellingFeedback(null);}}
+                disabled={spellingFeedback==='correct'} className="sr-only"
+                autoComplete="off" autoCorrect="off" spellCheck="false" aria-label="拼写输入"/>
+              <p className="mt-3 text-center text-xs t3">每条横线代表一个字母，输错的位置会标红</p>
             </div>
-
-            <button
-              type="submit"
-              disabled={!spellingInput.trim() || spellingFeedback === 'correct'}
-              className="mt-6 flex w-full items-center justify-center rounded-2xl bg-indigo-600 py-4 font-bold text-white transition-all active:scale-[0.98] hover:bg-indigo-700 disabled:opacity-50"
-            >
-              提交校验
-              <ArrowRight className="ml-2 h-5 w-5" />
+            <button type="submit" disabled={!spellingInput.trim()||spellingFeedback==='correct'} className="btn btn-p w-full mt-4">
+              提交校验<ArrowRight className="h-4 w-4"/>
             </button>
           </form>
-
-          {spellingFeedback === 'correct' && (
-            <div className="mt-4 flex justify-end text-emerald-500 animate-in zoom-in">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-          )}
-
-          {spellingFeedback === 'incorrect' && (
-            <div className="mt-4 flex items-center rounded-xl bg-rose-50 p-4 text-sm text-rose-700 animate-in slide-in-from-top-2">
-              <XCircle className="mr-2 h-5 w-5 shrink-0" />
-              拼写错误，请修改后重新提交。该词会在稍后重新测试。
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentWordMistakes((prev) => prev + 1);
-                  setSpellingInput(word.word);
-                  setSpellingFeedback(null);
-                }}
-                className="ml-auto shrink-0 font-medium underline hover:text-rose-900"
-              >
-                直接填入答案
-              </button>
+          {spellingFeedback==='correct'&&<div className="flex justify-center animate-in zoom-in"><CheckCircle2 className="h-8 w-8" style={{color:'#10b981'}}/></div>}
+          {spellingFeedback==='incorrect'&&(
+            <div className="flex items-center rounded-xl px-4 py-3 text-sm animate-in slide-in-from-top-2" style={{background:'rgba(244,63,94,.08)',color:'#f43f5e',border:'1px solid rgba(244,63,94,.2)'}}>
+              <XCircle className="mr-2 h-4 w-4 shrink-0"/>拼写错误，修改后重试。
+              <button type="button" onClick={()=>{setCurrentWordMistakes(p=>p+1);setSpellingInput(word.word);setSpellingFeedback(null);}} className="ml-auto font-semibold underline shrink-0">直接填入答案</button>
             </div>
           )}
         </div>
@@ -2501,285 +1992,150 @@ export default function VocabularyMaster() {
   const renderSentencePractice = () => {
     const word = sentenceQueue[currentSentenceIndex];
     if (!word) return null;
-
-    const normalizeSentenceWhitespace = (value) => String(value || '').trim().replace(/\s+/g, ' ');
-    const targetSentence = word.exampleEn || '';
-    const normalizedTargetSentence = normalizeSentenceWhitespace(targetSentence);
-    const normalizedInputSentence = normalizeSentenceWhitespace(sentenceInput);
-    const isFullyCorrect = normalizedInputSentence === normalizedTargetSentence;
-    const targetWords = normalizedTargetSentence ? normalizedTargetSentence.split(' ') : [];
-    const inputWords = normalizedInputSentence ? normalizedInputSentence.split(' ') : [];
-    const sentenceSlots = targetWords.map((targetPart, index) => {
-      const typedPart = inputWords[index] || '';
-      const showAnswerPart = showSentenceAnswer ? targetPart : '';
-      const isCorrectPart = typedPart === targetPart;
-      const showError = sentenceSubmitted && typedPart && !isCorrectPart;
-      const placeholder = '_'.repeat(Math.max(targetPart.length, 2));
-
-      return {
-        key: `${targetPart}_${index}`,
-        targetPart,
-        typedPart,
-        showAnswerPart,
-        isCorrectPart,
-        showError,
-        placeholder,
-      };
+    const norm = v=>String(v||'').trim().replace(/\s+/g,' ');
+    const tgtSen = word.exampleEn||'';
+    const normTgt = norm(tgtSen);
+    const normIn = norm(sentenceInput);
+    const isOk = normIn===normTgt;
+    const tgtWords = normTgt?normTgt.split(' '):[];
+    const inWords = normIn?normIn.split(' '):[];
+    const slots = tgtWords.map((tp,i)=>{
+      const typed=inWords[i]||'';
+      const showAns=showSentenceAnswer?tp:'';
+      const isOkPart=typed===tp;
+      const showErr=sentenceSubmitted&&typed&&!isOkPart;
+      return {key:`${tp}_${i}`,tp,typed,showAns,isOkPart,showErr,ph:'_'.repeat(Math.max(tp.length,2))};
     });
-
-    // 使用 Set 计算去重后的实际任务进度
-    const totalUnique = new Set(sentenceQueue.map(w => w.id)).size;
-    const remainingUnique = new Set(sentenceQueue.slice(currentSentenceIndex).map(w => w.id)).size;
-    const currentProgress = totalUnique - remainingUnique + 1;
-
+    const totalU=new Set(sentenceQueue.map(w=>w.id)).size;
+    const remU=new Set(sentenceQueue.slice(currentSentenceIndex).map(w=>w.id)).size;
+    const prog=totalU-remU+1;
     return (
-      <div className="max-w-xl mx-auto w-full animate-in slide-in-from-right-8 duration-500">
-        <div className="text-center mb-8">
-          <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 text-sm font-bold rounded-full mb-4 flex items-center gap-2 justify-center w-max mx-auto">
-            <Keyboard className="w-4 h-4"/>
-            Sentence practice ({currentProgress}/{totalUnique})
-          </span>
-          <h2 className="text-2xl font-bold text-slate-800">Write the full English sentence based on the Chinese hint</h2>
+      <div className="max-w-lg mx-auto w-full animate-in slide-in-from-right-6 duration-400">
+        <div className="text-center mb-6">
+          <div className="pill pill-ac mx-auto mb-3 w-fit"><Keyboard className="h-3 w-3"/>例句练习 ({prog}/{totalU})</div>
+          <h2 className="text-xl font-black t1">根据中文提示写出完整的英文句子</h2>
         </div>
-
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8">
-          <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="card p-7 space-y-5">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="mt-1 rounded-lg bg-slate-100 p-2 text-slate-500"><BrainCircuit className="h-4 w-4" /></div>
+              <div className="rounded-lg p-2 mt-0.5" style={{background:'var(--mu)'}}><BrainCircuit className="h-4 w-4 t3"/></div>
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Chinese hint</span>
-                <p className="mt-1 text-lg font-medium text-slate-800">{word.exampleZh}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest t3 mb-1">中文提示</p>
+                <p className="text-base font-semibold t1">{word.exampleZh}</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => speakText(word.exampleEn, { allowUnlock: true })}
-              className="shrink-0 rounded-full bg-indigo-50 p-3 text-indigo-600 transition-colors hover:bg-indigo-100"
-              title="Play full sentence hint"
-            >
-              <Volume2 className="h-5 w-5" />
-            </button>
+            <button type="button" onClick={()=>speakText(word.exampleEn,{allowUnlock:true})}
+              className="shrink-0 rounded-full p-2.5 transition" style={{background:'var(--acs)',color:'var(--ac)'}}><Volume2 className="h-4 w-4"/></button>
           </div>
-
-          <div
-            className={`relative min-h-[180px] w-full cursor-text rounded-2xl border-2 p-5 transition-colors ${isFullyCorrect ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50 focus-within:border-indigo-500'}`}
-            onClick={() => sentenceInputRef.current?.focus()}
-          >
-            <div className="mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Chinese hint</span>
-              <p className="mt-2 text-sm text-slate-500">Each underline below corresponds to one English word. Click anywhere and type the full sentence.</p>
-            </div>
-            <textarea
-              ref={sentenceInputRef}
-              value={sentenceInput}
-              onChange={(e) => {
-                setSentenceInput(e.target.value);
-                if (sentenceSubmitted) setSentenceSubmitted(false);
-              }}
+          <div className={`relative min-h-[160px] w-full cursor-text rounded-2xl border-2 p-5 transition-colors ${isOk?'border-emerald-500':'focus-within:border-indigo-400'}`}
+            style={{borderColor:isOk?'#10b981':'var(--cb)',background:'var(--mu)'}}
+            onClick={()=>sentenceInputRef.current?.focus()}>
+            <p className="text-[10px] font-bold uppercase tracking-widest t3 mb-3">在此输入英文句子</p>
+            <textarea ref={sentenceInputRef} value={sentenceInput}
+              onChange={e=>{setSentenceInput(e.target.value);if(sentenceSubmitted)setSentenceSubmitted(false);}}
               className="absolute inset-0 h-full w-full resize-none cursor-text p-5 opacity-0"
-              spellCheck="false"
-              autoCapitalize="off"
-              autoComplete="off"
-            />
-            <div className="pointer-events-none flex flex-wrap gap-x-3 gap-y-4 font-mono text-[18px] sm:text-xl">
-              {sentenceSlots.map((slot) => (
-                <div
-                  key={slot.key}
-                  className={`min-w-[3rem] border-b-2 pb-1 text-center ${slot.showError ? 'border-rose-400 text-rose-600' : slot.isCorrectPart && slot.typedPart ? 'border-emerald-400 text-emerald-700' : 'border-slate-300 text-slate-500'}`}
-                  style={{ minWidth: `${Math.max(slot.targetPart.length, 2) * 0.75}rem` }}
-                >
-                  {slot.typedPart || slot.showAnswerPart || slot.placeholder}
+              spellCheck="false" autoCapitalize="off" autoComplete="off"/>
+            <div className="pointer-events-none flex flex-wrap gap-x-2.5 gap-y-3 font-mono text-lg">
+              {slots.map(s=>(
+                <div key={s.key} className={`border-b-2 pb-0.5 text-center ${s.showErr?'slot-err':s.isOkPart&&s.typed?'slot-ok':'slot-empty'}`}
+                  style={{minWidth:`${Math.max(s.tp.length,2)*0.7}rem`}}>
+                  {s.typed||s.showAns||s.ph}
                 </div>
               ))}
-              {!isFullyCorrect && <span className="inline-block h-6 w-2.5 animate-pulse self-end bg-indigo-500" />}
+              {!isOk&&<span className="inline-block h-5 w-2 animate-pulse self-end rounded-sm" style={{background:'var(--ac)'}}/>}
             </div>
           </div>
-
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            {!isFullyCorrect && (
-              <button
-                onClick={handleShowSentenceAnswer}
-                className="flex-1 rounded-2xl bg-slate-100 py-4 font-bold text-slate-600 transition-all hover:bg-slate-200"
-              >
-                Show answer hint
-              </button>
-            )}
-            <button
-              onClick={handleSentenceSubmit}
-              disabled={!sentenceInput.trim()}
-              className={`flex-1 rounded-2xl py-4 font-bold transition-all ${sentenceInput.trim() ? 'bg-emerald-500 text-white shadow-md hover:bg-emerald-600 active:scale-[0.98]' : 'cursor-not-allowed bg-slate-200 text-slate-400'}`}
-            >
-              <span className="flex items-center justify-center">
-                {isFullyCorrect ? 'All correct, next one' : sentenceSubmitted ? 'Keep editing the sentence' : 'Submit sentence'}
-                {isFullyCorrect && <ArrowRight className="ml-2 h-5 w-5" />}
-              </span>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {!isOk&&<button onClick={handleShowSentenceAnswer} className="btn btn-g flex-1">显示答案提示</button>}
+            <button onClick={handleSentenceSubmit} disabled={!sentenceInput.trim()}
+              className={`btn flex-1 ${sentenceInput.trim()?'btn-ok':'btn-g opacity-50 cursor-not-allowed'}`}>
+              {isOk?<>全部正确，下一题<ArrowRight className="h-4 w-4"/></>:sentenceSubmitted?'继续修改句子':'提交句子'}
             </button>
           </div>
-
-          {sentenceSubmitted && !isFullyCorrect && !showSentenceAnswer && (
-            <p className="mt-4 animate-in fade-in text-center text-sm text-rose-500">
-              The sentence is not fully correct yet. Edit it and submit again to reveal error positions.
-            </p>
-          )}
-          {usedHint && !isFullyCorrect && (
-            <p className="mt-4 animate-in fade-in text-center text-sm text-amber-500">
-              Using a hint will send this sentence to the back of the queue.
-            </p>
-          )}
+          {sentenceSubmitted&&!isOk&&!showSentenceAnswer&&<p className="text-center text-xs" style={{color:'#f43f5e'}}>句子尚未完全正确，继续修改后提交。</p>}
+          {usedHint&&!isOk&&<p className="text-center text-xs" style={{color:'#f59e0b'}}>使用了提示，该句子会加入队尾重试。</p>}
         </div>
       </div>
     );
   };
 
-
   const renderFinished = () => (
-    <div className="max-w-md mx-auto text-center space-y-6 animate-in zoom-in duration-500 bg-white p-10 rounded-[2rem] shadow-xl border border-slate-100">
-      <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-        <Check className="w-12 h-12" />
-      </div>
-      <h2 className="text-3xl font-black text-slate-800">Session complete</h2>
-      <p className="text-slate-500 text-lg leading-relaxed">
-        {sessionType === 'smart_review' 
-          ? "Great job. Today's smart review cards are all cleared."
-          : 'This learning batch is complete. Take a short break before the next round.'}
-      </p>
-      <div className="pt-6">
-        <button
-          onClick={() => setView('home')}
-          className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl w-full transition-colors"
-        >
-          Back to home
-        </button>
+    <div className="max-w-sm mx-auto text-center space-y-5 animate-in zoom-in duration-400">
+      <div className="card p-10">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full" style={{background:'rgba(16,185,129,.1)'}}>
+          <Check className="h-10 w-10" style={{color:'#10b981'}}/>
+        </div>
+        <h2 className="text-2xl font-black t1">本轮完成！</h2>
+        <p className="mt-3 text-base t2 leading-7">
+          {sessionType==='smart_review'?'太棒了！今日所有智能复习卡片已全部清空。':'本学习批次已完成，稍作休息再继续下一轮。'}
+        </p>
+        <button onClick={()=>setView('home')} className="btn btn-p w-full mt-7">返回首页</button>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
-      <header className="px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 flex justify-between items-center gap-4">
-        <div 
-          className="flex items-center gap-2 font-bold text-lg tracking-tight cursor-pointer"
-          onClick={() => setView('home')}
-        >
-          <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
-            <Book className="w-5 h-5" />
+    <div className="min-h-screen font-sans flex flex-col" style={{background:'var(--pg)',color:'var(--t1)'}}>
+      {/* Header */}
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-4 px-5 py-3" style={{background:'rgba(var(--pg-rgb,240,240,248),.85)',backdropFilter:'blur(14px)',borderBottom:'1px solid var(--cb)'}}>
+        <div onClick={()=>setView('home')} className="flex items-center gap-2 font-black text-lg tracking-tight cursor-pointer t1">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl" style={{background:'linear-gradient(135deg,#6366f1,#7c3aed)',color:'white'}}>
+            <Book className="h-4 w-4"/>
           </div>
           单词大师
         </div>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
-          {selectedBook && !['home', 'library', 'login', 'register'].includes(view) && sessionType === 'normal' && (
-            <div className="hidden max-w-xs items-center gap-1 truncate rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-500 sm:flex">
-              {ALL_BOOKS[selectedBook]?.name}
-            </div>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          {selectedBook&&!['home','library','login','register'].includes(view)&&sessionType==='normal'&&(
+            <div className="hidden sm:flex pill pill-mu max-w-[160px] truncate">{ALL_BOOKS[selectedBook]?.name}</div>
           )}
-          {view !== 'home' && view !== 'library' && view !== 'login' && view !== 'register' && sessionType === 'smart_review' && (
-            <div className="hidden items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-600 sm:flex">
-              <CalendarClock className="w-4 h-4"/> 智能复习
-            </div>
+          {!['home','library','login','register'].includes(view)&&sessionType==='smart_review'&&(
+            <div className="hidden sm:flex pill pill-ac"><CalendarClock className="h-3 w-3"/>智能复习</div>
           )}
-          {authLoading ? (
-            <div className="text-sm text-slate-400">账户加载中...</div>
-          ) : authUser ? (
+          {/* Theme toggle */}
+          <button onClick={toggleTheme} className="theme-toggle-btn flex h-8 w-8 items-center justify-center rounded-xl transition" style={{background:'var(--mu)',color:'var(--t2)',border:'1px solid var(--cb)'}} title={themeMode==='dark'?'切换日间模式':'切换夜间模式'}>
+            {themeMode==='dark'?<Sun className="h-4 w-4"/>:<Moon className="h-4 w-4"/>}
+          </button>
+          {authLoading?(
+            <span className="text-xs t3">加载中...</span>
+          ):authUser?(
             <>
-              <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 sm:flex">
-                <UserRound className="h-4 w-4 text-indigo-500" />
-                {authUser.username || authUser.email}
-              </div>
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
-              >
-                <LogOut className="h-4 w-4" />
-                退出
-              </button>
+              <div className="hidden sm:flex pill pill-mu"><UserRound className="h-3 w-3" style={{color:'var(--ac)'}}/>{authUser.username||authUser.email}</div>
+              <button onClick={handleLogout} className="btn btn-g py-1.5 px-3 text-xs"><LogOut className="h-3.5 w-3.5"/>退出</button>
             </>
-          ) : (
+          ):(
             <>
-              <button
-                onClick={() => {
-                  setAuthError('');
-                  setView('login');
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:text-slate-900"
-              >
-                <LogIn className="h-4 w-4" />
-                登录
-              </button>
-              <button
-                onClick={() => {
-                  setAuthError('');
-                  setView('register');
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
-              >
-                <UserPlus className="h-4 w-4" />
-                注册
-              </button>
+              <button onClick={()=>{setAuthError('');setView('login');}} className="btn btn-g py-1.5 px-3 text-xs"><LogIn className="h-3.5 w-3.5"/>登录</button>
+              <button onClick={()=>{setAuthError('');setView('register');}} className="btn btn-p py-1.5 px-3 text-xs"><UserPlus className="h-3.5 w-3.5"/>注册</button>
             </>
           )}
         </div>
-        {false && selectedBook && !['home', 'library'].includes(view) && sessionType === 'normal' && (
-          <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full flex items-center gap-1 max-w-[150px] sm:max-w-xs truncate">
-            {ALL_BOOKS[selectedBook]?.name}
-          </div>
-        )}
-        {false && view !== 'home' && view !== 'library' && sessionType === 'smart_review' && (
-          <div className="text-sm font-medium text-emerald-600 bg-emerald-100 px-3 py-1.5 rounded-full flex items-center gap-1">
-            <CalendarClock className="w-4 h-4"/> 智能复习
-          </div>
-        )}
       </header>
 
       <main className="flex-1 flex flex-col justify-center p-4 sm:p-6 pb-20 relative z-10">
-        {view === 'home' && renderHome()}
-        {view === 'library' && renderLibrary()}
-        {view === 'login' && renderAuthPanel('login')}
-        {view === 'register' && renderAuthPanel('register')}
-        {view === 'learning' && renderLearning()}
-        {view === 'spelling' && renderSpelling()}
-        {view === 'sentence_practice' && renderSentencePractice()}
-        {view === 'finished' && renderFinished()}
-        {showBreakPrompt && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="w-full max-w-md rounded-[2rem] bg-white p-8 shadow-2xl animate-in zoom-in-95">
-              <div className="text-center">
-                <h3 className="text-2xl font-black text-slate-900">Take a short break</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-500">
-                  You just finished a batch. You can go back home for a break or continue with the next
-                  {nextBatchPreviewCount > 0 ? ` ${nextBatchPreviewCount} ` : " "}
-                  words.
-                </p>
-              </div>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <button
-                  onClick={handleTakeBreak}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Take a break
-                </button>
-                <button
-                  onClick={handleContinueLearning}
-                  className="rounded-2xl bg-indigo-600 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-700"
-                >
-                  Continue learning
-                </button>
+        {view==='home'&&renderHome()}
+        {view==='library'&&renderLibrary()}
+        {view==='login'&&renderAuthPanel('login')}
+        {view==='register'&&renderAuthPanel('register')}
+        {view==='learning'&&renderLearning()}
+        {view==='spelling'&&renderSpelling()}
+        {view==='sentence_practice'&&renderSentencePractice()}
+        {view==='finished'&&renderFinished()}
+        {showBreakPrompt&&(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,.45)',backdropFilter:'blur(6px)'}}>
+            <div className="card w-full max-w-md p-8 animate-in zoom-in-95" style={{borderRadius:'1.5rem'}}>
+              <h3 className="text-xl font-black t1 text-center">稍作休息</h3>
+              <p className="mt-3 text-sm t2 text-center leading-6">
+                你刚刚完成了一批！可以休息一下，也可以继续学习
+                {nextBatchPreviewCount>0?` ${nextBatchPreviewCount} `:" "}个新词。
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <button onClick={handleTakeBreak} className="btn btn-g">休息一下</button>
+                <button onClick={handleContinueLearning} className="btn btn-p">继续学习</button>
               </div>
             </div>
           </div>
         )}
       </main>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          50% { transform: translateX(5px); }
-          75% { transform: translateX(-5px); }
-        }
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-      `}} />
     </div>
   );
 }
